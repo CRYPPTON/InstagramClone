@@ -3,7 +3,7 @@ import Button from '../common/Button';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext'; // To get authenticated user ID
 
-const PostActions = ({ postId, initialLikeCount }) => {
+const PostActions = ({ postId, initialLikeCount, onLikeUpdate }) => {
   const { user: authUser } = useAuth();
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiked, setIsLiked] = useState(false);
@@ -34,26 +34,24 @@ const PostActions = ({ postId, initialLikeCount }) => {
     if (isLiking) return;
     setIsLiking(true);
     try {
+      let newLikeCount;
       if (isLiked) {
         await api.unlikePost(postId);
-        setLikeCount(prev => prev - 1);
+        newLikeCount = likeCount - 1;
+        setLikeCount(newLikeCount);
         setIsLiked(false);
       } else {
         await api.likePost(postId);
-        setLikeCount(prev => prev + 1);
+        newLikeCount = likeCount + 1;
+        setLikeCount(newLikeCount);
         setIsLiked(true);
+      }
+      if (onLikeUpdate) {
+        onLikeUpdate(newLikeCount);
       }
       setError('');
     } catch (err) {
       setError(err.message || 'Failed to toggle like.');
-      // Revert UI changes on error
-      if (isLiked) {
-        setLikeCount(prev => prev + 1);
-        setIsLiked(true);
-      } else {
-        setLikeCount(prev => prev - 1);
-        setIsLiked(false);
-      }
     } finally {
       setIsLiking(false);
     }
