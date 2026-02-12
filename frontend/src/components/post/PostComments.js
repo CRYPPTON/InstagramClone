@@ -5,6 +5,54 @@ import { useAuth } from '../../context/AuthContext';
 import Input from '../common/Input';
 import Button from '../common/Button';
 
+const COMMENT_LENGTH_LIMIT = 100;
+
+// Sub-component for rendering a single comment with truncation logic
+const Comment = ({ comment, authUser, onEdit, onDelete, isEditing, editedContent, onContentChange, onSave, onCancelEdit }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const canManage = authUser && authUser.id === comment.user_id;
+
+  const isLongComment = comment.content.length > COMMENT_LENGTH_LIMIT;
+  
+  const displayedContent = isExpanded ? comment.content : `${comment.content.substring(0, COMMENT_LENGTH_LIMIT)}${isLongComment ? '...' : ''}`;
+
+  if (isEditing) {
+    return (
+      <div>
+        <Input
+          type="textarea"
+          value={editedContent}
+          onChange={onContentChange}
+          placeholder="Edit your comment..."
+        />
+        <Button onClick={() => onSave(comment.id)} style={{ marginRight: '5px' }}>Save</Button>
+        <Button onClick={onCancelEdit}>Cancel</Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ marginBottom: '5px', wordBreak: 'break-word' }}>
+      <Link to={`/profile/${comment.username}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}>
+        {comment.username}
+      </Link>
+      <span> {displayedContent}</span>
+      {isLongComment && !isExpanded && (
+        <button onClick={() => setIsExpanded(true)} style={{ all: 'unset', color: 'grey', cursor: 'pointer', marginLeft: '5px', fontWeight: 'bold' }}>
+          more
+        </button>
+      )}
+      {canManage && (
+        <span style={{ marginLeft: '10px' }}>
+          <Button onClick={() => onEdit(comment)} size="small">Edit</Button>
+          <Button onClick={() => onDelete(comment.id)} size="small" variant="danger" style={{ marginLeft: '5px' }}>Delete</Button>
+        </span>
+      )}
+    </div>
+  );
+};
+
+
 const PostComments = ({ postId, ownerId }) => {
   const { user: authUser } = useAuth();
   const [comments, setComments] = useState([]);
@@ -13,6 +61,7 @@ const PostComments = ({ postId, ownerId }) => {
   const [editedCommentContent, setEditedCommentContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [visibleCommentsCount, setVisibleCommentsCount] = useState(2);
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -74,47 +123,49 @@ const PostComments = ({ postId, ownerId }) => {
     }
   };
 
+  const showAllComments = () => {
+    setVisibleCommentsCount(comments.length);
+  };
+  
+  const visibleComments = comments.slice(0, visibleCommentsCount);
+  const hasMoreComments = comments.length > visibleCommentsCount;
+
   if (loading) {
-    return <div>Loading comments...</div>;
+    return <div style={{padding: '10px'}}>Loading comments...</div>;
   }
 
   return (
     <div style={{ padding: '10px' }}>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+      
       {comments.length === 0 ? (
         <p>No comments yet.</p>
       ) : (
-        comments.map((comment) => (
-          <div key={comment.id} style={{ marginBottom: '10px' }}>
-            <Link to={`/profile/${comment.username}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}>
-              {comment.username}
-            </Link>
-            {editingCommentId === comment.id ? (
-              <div>
-                <Input
-                  type="textarea"
-                  value={editedCommentContent}
-                  onChange={(e) => setEditedCommentContent(e.target.value)}
-                  placeholder="Edit your comment..."
-                />
-                <Button onClick={() => handleUpdateComment(comment.id)} style={{ marginRight: '5px' }}>Save</Button>
-                <Button onClick={() => setEditingCommentId(null)}>Cancel</Button>
-              </div>
-            ) : (
-              <span> {comment.content}</span>
-            )}
-            {authUser && authUser.id === comment.user_id && !editingCommentId && (
-              <span style={{ marginLeft: '10px' }}>
-                <Button onClick={() => handleEditComment(comment)} size="small">Edit</Button>
-                <Button onClick={() => handleDeleteComment(comment.id)} size="small" variant="danger" style={{ marginLeft: '5px' }}>Delete</Button>
-              </span>
-            )}
-          </div>
-        ))
+        <>
+          {visibleComments.map((comment) => (
+            <Comment
+              key={comment.id}
+              comment={comment}
+              authUser={authUser}
+              onEdit={handleEditComment}
+              onDelete={handleDeleteComment}
+              isEditing={editingCommentId === comment.id}
+              editedContent={editedCommentContent}
+              onContentChange={(e) => setEditedCommentContent(e.target.value)}
+              onSave={handleUpdateComment}
+              onCancelEdit={() => setEditingCommentId(null)}
+            />
+          ))}
+          {hasMoreComments && (
+            <button onClick={showAllComments} style={{ all: 'unset', color: 'grey', cursor: 'pointer', marginTop: '10px' }}>
+              View all {comments.length} comments
+            </button>
+          )}
+        </>
       )}
 
       {authUser && (
-        <form onSubmit={handleAddComment} style={{ marginTop: '20px' }}>
+        <form onSubmit={handleAddComment} style={{ marginTop: '20px', borderTop: '1px solid #efefef', paddingTop: '10px' }}>
           <Input
             type="text"
             value={newComment}

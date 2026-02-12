@@ -17,15 +17,21 @@ const ProfileHeader = ({
   onUnblock,
   onShowFollowers,
   onShowFollowing,
+  onShowBlockedUsers,
 }) => {
   const profilePictureUrl = getImageUrl(user.profile_picture_url);
 
   const renderFollowButton = () => {
     if (isOwner) {
       return (
-        <Link to="/accounts/edit">
-          <Button>Edit Profile</Button>
-        </Link>
+        <>
+          <Link to="/accounts/edit">
+            <Button>Edit Profile</Button>
+          </Link>
+          <Button onClick={onShowBlockedUsers} style={{ marginLeft: '10px' }}>
+            Blocked Users
+          </Button>
+        </>
       );
     }
 

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "DATABASE_URL=postgres://enterwait_user:enterwait_dev_2024@localhost:5432/instagram_clone_db_test jest"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +16,9 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "pg": "^8.17.2"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2"
   }
 }

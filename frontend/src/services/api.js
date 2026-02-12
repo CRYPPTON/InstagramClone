@@ -32,7 +32,7 @@ const request = async (method, url, data = null, isFormData = false) => {
       method,
       url: `${API_URL}${url}`,
       headers,
-      data: isFormData ? data : JSON.stringify(data),
+            data: data ? (isFormData ? data : JSON.stringify(data)) : undefined,
     });
     return response.data;
   } catch (error) {
@@ -49,6 +49,7 @@ const api = {
   register: async (userData) => request('POST', '/auth/register', userData),
 
   getPosts: async () => request('GET', '/posts/timeline'), // Updated to get timeline posts
+  getPost: async (postId) => request('GET', `/posts/${postId}`),
 
   getProfile: async (username) => request('GET', `/users/${username}`),
 
@@ -79,10 +80,14 @@ const api = {
   acceptFollowRequest: async (userId, followerId) => request('PUT', `/users/${userId}/followers/${followerId}/accept`),
   rejectFollowRequest: async (userId, followerId) => request('PUT', `/users/${userId}/followers/${followerId}/reject`),
 
+  // Follower management
+  removeFollower: async (userId, followerId) => request('DELETE', `/users/${userId}/followers/${followerId}`),
+
   // Blocking related APIs
   checkBlockStatus: async (blockerId, blockedId) => request('GET', `/users/${blockerId}/blocks/${blockedId}/status`),
   blockUser: async (blockedId) => request('POST', `/users/${blockedId}/block`, {}),
   unblockUser: async (blockedId) => request('DELETE', `/users/${blockedId}/unblock`),
+  getBlockedUsers: async (userId) => request('GET', `/users/${userId}/blocked`),
 
   // User search API
   searchUsers: async (query) => request('GET', `/users/search?query=${query}`),

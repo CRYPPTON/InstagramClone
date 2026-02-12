@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import CreatePostPage from './pages/CreatePostPage';
+import PostPage from './pages/PostPage';
 import SearchPage from './pages/SearchPage';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
@@ -27,6 +28,7 @@ function App() {
           <Route path="/accounts/edit" element={<ProfileEditPage />} />
           <Route path="/create-post" element={<CreatePostPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/post/:postId" element={<PostPage />} />
           {/* Add other private routes here */}
         </Route>
       </Routes>

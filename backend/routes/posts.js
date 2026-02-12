@@ -83,6 +83,79 @@ router.get('/timeline', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/posts/:id
+// @desc    Get a single post by ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+  const postId = parseInt(req.params.id);
+  let viewerId = null;
+
+  // Manually check for token, similar to auth middleware but doesn't restrict access if no token
+  const token = req.header('x-auth-token');
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, 'secret'); // 'secret' should be an environment variable
+      viewerId = decoded.user.id;
+    } catch (err) {
+      // Token is invalid, treat as unauthenticated
+      viewerId = null;
+    }
+  }
+
+  try {
+    const postResult = await pool.query(
+      `SELECT
+         p.id AS post_id,
+         p.caption,
+         p.created_at AS post_created_at,
+         u.id AS user_id,
+         u.username,
+         u.full_name,
+         u.profile_picture_url,
+         u.is_private,
+         COUNT(DISTINCT l.id) AS like_count
+       FROM posts p
+       JOIN users u ON p.user_id = u.id
+       LEFT JOIN likes l ON p.id = l.post_id
+       WHERE p.id = $1
+       GROUP BY p.id, u.id`,
+      [postId]
+    );
+
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ msg: 'Post not found' });
+    }
+
+    const post = postResult.rows[0];
+
+    // Check if the profile is private and if the viewer is authorized to see the post
+    if (post.is_private) {
+      if (!viewerId || (viewerId !== post.user_id && !(await isFollowing(viewerId, post.user_id)))) {
+        return res.status(403).json({ msg: 'This account is private.' });
+      }
+    }
+
+    // Fetch media for the post
+    const media = await pool.query('SELECT media_url, media_type, order_index FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
+    post.media = media.rows;
+
+    res.json(post);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Helper function to check if a user is following another user
+const isFollowing = async (followerId, followeeId) => {
+  const result = await pool.query(
+    'SELECT * FROM followers WHERE follower_id = $1 AND followee_id = $2 AND status = $3',
+    [followerId, followeeId, 'accepted']
+  );
+  return result.rows.length > 0;
+};
+
+
 // @route   POST /api/posts
 // @desc    Create a new post
 // @access  Private
@@ -248,12 +321,29 @@ router.post('/:id/like', auth, async (req, res) => {
   const userId = req.user.id; // The user liking the post
 
   try {
-    // Check if post exists
-    const postResult = await pool.query('SELECT user_id FROM posts WHERE id = $1', [postId]);
-    if (postResult.rows.length === 0) {
+    // Check if the post exists and if the user is authorized to see it
+    const postVisibilityResult = await pool.query(
+      `SELECT p.user_id, u.is_private
+       FROM posts p
+       JOIN users u ON p.user_id = u.id
+       WHERE p.id = $1`,
+      [postId]
+    );
+
+    if (postVisibilityResult.rows.length === 0) {
       return res.status(404).json({ msg: 'Post not found' });
     }
-    const postOwnerId = postResult.rows[0].user_id;
+
+    const postInfo = postVisibilityResult.rows[0];
+    const postOwnerId = postInfo.user_id;
+
+    // If the post owner's profile is private, check for follow status
+    if (postInfo.is_private && postOwnerId !== userId) {
+      const isFollower = await isFollowing(userId, postOwnerId);
+      if (!isFollower) {
+        return res.status(403).json({ msg: 'You cannot like a post from a private profile you do not follow.' });
+      }
+    }
 
     // Check if already liked
     const alreadyLiked = await pool.query(

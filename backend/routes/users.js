@@ -120,12 +120,16 @@ router.get('/:username', async (req, res) => {
 
     // Check if the profile is private and if the viewer is authorized to see posts
     if (targetUser.is_private) {
+      const postQuery = `
+        SELECT p.id AS post_id, p.user_id, p.caption, p.created_at, (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
+        FROM posts p WHERE p.user_id = $1 ORDER BY p.created_at DESC
+      `;
       // If the viewer is the owner of the profile, or if the viewer is following
       if (viewerId && (viewerId === targetUser.id)) {
         // Owner can see all their posts and their media
-        const userPosts = (await pool.query('SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC', [targetUser.id])).rows;
+        const userPosts = (await pool.query(postQuery, [targetUser.id])).rows;
         posts = await Promise.all(userPosts.map(async (post) => {
-          const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.id]);
+          const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
           return { ...post, media: media.rows };
         }));
       } else if (viewerId) {
@@ -135,9 +139,9 @@ router.get('/:username', async (req, res) => {
           [viewerId, targetUser.id, 'accepted']
         );
         if (isFollowing.rows.length > 0) {
-          const userPosts = (await pool.query('SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC', [targetUser.id])).rows;
+          const userPosts = (await pool.query(postQuery, [targetUser.id])).rows;
           posts = await Promise.all(userPosts.map(async (post) => {
-            const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.id]);
+            const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
             return { ...post, media: media.rows };
           }));
         }
@@ -145,9 +149,13 @@ router.get('/:username', async (req, res) => {
       // If not authenticated or not following, posts array remains empty
     } else {
       // Public profile, everyone can see posts and their media
-      const userPosts = (await pool.query('SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC', [targetUser.id])).rows;
+      const postQuery = `
+        SELECT p.id AS post_id, p.user_id, p.caption, p.created_at, (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
+        FROM posts p WHERE p.user_id = $1 ORDER BY p.created_at DESC
+      `;
+      const userPosts = (await pool.query(postQuery, [targetUser.id])).rows;
       posts = await Promise.all(userPosts.map(async (post) => {
-        const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.id]);
+        const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
         return { ...post, media: media.rows };
       }));
     }
@@ -564,6 +572,62 @@ router.get('/:userId/following', auth, async (req, res) => {
     );
 
     res.json(following.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET /api/users/:userId/blocked
+// @desc    Get blocked users for a user
+// @access  Private
+router.get('/:userId/blocked', auth, async (req, res) => {
+  const { userId } = req.params;
+  const authUserId = req.user.id;
+
+  if (authUserId !== parseInt(userId)) {
+    return res.status(403).json({ msg: 'Forbidden: You can only view your own blocked list' });
+  }
+
+  try {
+    const blockedUsers = await pool.query(
+      `SELECT u.id, u.username, u.full_name, u.profile_picture_url
+       FROM blocks b
+       JOIN users u ON b.blocked_id = u.id
+       WHERE b.blocker_id = $1`,
+      [userId]
+    );
+
+    res.json(blockedUsers.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   DELETE /api/users/:userId/followers/:followerId
+// @desc    Remove a follower from the user's profile
+// @access  Private
+router.delete('/:userId/followers/:followerId', auth, async (req, res) => {
+  const { userId, followerId } = req.params;
+  const authUserId = req.user.id;
+
+  // Ensure authenticated user is the owner of the profile
+  if (authUserId !== parseInt(userId)) {
+    return res.status(403).json({ msg: 'Forbidden: You can only remove followers from your own profile' });
+  }
+
+  try {
+    const removeResult = await pool.query(
+      'DELETE FROM followers WHERE followee_id = $1 AND follower_id = $2 AND status = $3 RETURNING *',
+      [parseInt(userId, 10), parseInt(followerId, 10), 'accepted']
+    );
+
+    if (removeResult.rows.length === 0) {
+      return res.status(400).json({ msg: 'Follower not found or not an accepted follower' });
+    }
+
+    res.json({ msg: 'Follower removed successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import api, { getImageUrl } from '../services/api';
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
+import BlockedUsersList from '../components/profile/BlockedUsersList';
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -17,8 +18,10 @@ const ProfilePage = () => {
   const [isBlocked, setIsBlocked] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
+  const [blockedUsers, setBlockedUsers] = useState([]);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [showBlockedUsers, setShowBlockedUsers] = useState(false);
 
   const fetchProfileAndStatus = useCallback(async () => {
     try {
@@ -88,12 +91,17 @@ const ProfilePage = () => {
     }
   };
 
-  const handleUnblock = async () => {
-    if (!authUser || !profile) return;
+  const handleUnblock = async (userIdToUnblock) => {
+    if (!authUser) return;
     try {
-      await api.unblockUser(profile.id);
-      setIsBlocked(false);
+      await api.unblockUser(userIdToUnblock);
+      if (profile && userIdToUnblock === profile.id) {
+        setIsBlocked(false);
+      }
       fetchProfileAndStatus();
+      if (showBlockedUsers) {
+        handleShowBlockedUsers();
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -120,6 +128,18 @@ const ProfilePage = () => {
       setError(err.message);
     }
   };
+
+  const handleShowBlockedUsers = async () => {
+    if (!authUser) return;
+    try {
+      const blockedUsersList = await api.getBlockedUsers(authUser.id);
+      setBlockedUsers(blockedUsersList);
+      setShowBlockedUsers(true);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
 
   const handleFollowFromModal = async (userId, isFollowing) => {
     try {
@@ -154,6 +174,24 @@ const ProfilePage = () => {
     }));
   };
 
+  const handleRemoveFollower = async (profileUserId, followerId, followerUsername) => {
+    if (!authUser || !profile) return;
+    if (window.confirm(`Are you sure you want to remove ${followerUsername} from your followers?`)) {
+      try {
+        await api.removeFollower(profileUserId, followerId);
+        // Refresh the followers list
+        await handleShowFollowers(); // This will re-fetch and update the state
+        setProfile(prevProfile => ({
+          ...prevProfile,
+          followerCount: prevProfile.followerCount - 1
+        }));
+        setError('');
+      } catch (err) {
+        setError(err.message || 'Failed to remove follower.');
+      }
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -181,10 +219,16 @@ const ProfilePage = () => {
         onUnfollow={handleUnfollow}
         isBlocked={isBlocked}
         onBlock={handleBlock}
-        onUnblock={handleUnblock}
+        onUnblock={() => handleUnblock(profile.id)}
         onShowFollowers={handleShowFollowers}
         onShowFollowing={handleShowFollowing}
+        onShowBlockedUsers={handleShowBlockedUsers}
       />
+      {isOwner && (
+        <Button onClick={handleShowBlockedUsers} style={{ marginBottom: '20px' }}>
+          Blocked Users
+        </Button>
+      )}
       <PostGrid
         posts={profile.posts}
         onPostDeleted={handlePostDeleted}
@@ -197,7 +241,12 @@ const ProfilePage = () => {
             <div key={follower.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
               <img src={getImageUrl(follower.profile_picture_url) || 'https://via.placeholder.com/50'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
               <Link to={`/profile/${follower.username}`}>{follower.username}</Link>
-              {authUser && authUser.id !== follower.id && (
+              {isOwner && (
+                <Button onClick={() => handleRemoveFollower(profile.id, follower.id, follower.username)} style={{ marginLeft: 'auto' }} variant="danger">
+                  Remove
+                </Button>
+              )}
+              {!isOwner && authUser && authUser.id !== follower.id && (
                 <Button onClick={() => handleFollowFromModal(follower.id, following.some(f => f.id === follower.id))} style={{ marginLeft: 'auto' }}>
                   {following.some(f => f.id === follower.id) ? 'Unfollow' : 'Follow'}
                 </Button>
@@ -220,6 +269,11 @@ const ProfilePage = () => {
               )}
             </div>
           ))}
+        </Modal>
+      )}
+      {showBlockedUsers && (
+        <Modal onClose={() => setShowBlockedUsers(false)}>
+          <BlockedUsersList blockedUsers={blockedUsers} onUnblock={handleUnblock} />
         </Modal>
       )}
     </div>
