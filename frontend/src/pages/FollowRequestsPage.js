@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Button from '../components/common/Button';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api';
 
 const FollowRequestsPage = () => {
   const { user: authUser } = useAuth();
@@ -61,7 +61,7 @@ const FollowRequestsPage = () => {
           <div>
             {followRequests.map((request) => (
               <div key={request.follower_id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                <img src={api.getMediaUrl(request.profile_picture_url) || 'https://via.placeholder.com/50'} alt="Requester" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+                <img src={getImageUrl(request.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="Requester" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
                 <span style={{ fontWeight: 'bold', marginRight: '10px' }}>{request.username}</span>
                 <Button onClick={() => handleRequestAction(request.follower_id, 'accept')} style={{ marginRight: '5px' }}>Accept</Button>
                 <Button onClick={() => handleRequestAction(request.follower_id, 'reject')} variant="secondary">Reject</Button>
