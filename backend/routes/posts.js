@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
 const auth = require('../middleware/auth'); // Import auth middleware
+const optionalAuth = require('../middleware/optionalAuth'); // Import optionalAuth middleware
 const multer = require('multer'); // Import multer
 const path = require('path'); // Import path for file paths
 const fs = require('fs'); // Import fs for file system operations
+const jwt = require('jsonwebtoken');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://enterwait_user:enterwait_dev_2024@localhost:5432/instagram_clone_db',
@@ -54,7 +56,7 @@ router.get('/timeline', auth, async (req, res) => {
          u.username,
          u.full_name,
          u.profile_picture_url,
-         COUNT(DISTINCT l.id) AS like_count,
+         COUNT(DISTINCT l.user_id) AS like_count,
          COUNT(DISTINCT c.id) AS comment_count
        FROM posts p
        JOIN users u ON p.user_id = u.id
@@ -85,22 +87,10 @@ router.get('/timeline', auth, async (req, res) => {
 
 // @route   GET /api/posts/:id
 // @desc    Get a single post by ID
-// @access  Public
-router.get('/:id', async (req, res) => {
+// @access  Public (with auth check for private posts)
+router.get('/:id', optionalAuth, async (req, res) => {
   const postId = parseInt(req.params.id);
-  let viewerId = null;
-
-  // Manually check for token, similar to auth middleware but doesn't restrict access if no token
-  const token = req.header('x-auth-token');
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, 'secret'); // 'secret' should be an environment variable
-      viewerId = decoded.user.id;
-    } catch (err) {
-      // Token is invalid, treat as unauthenticated
-      viewerId = null;
-    }
-  }
+  const viewerId = req.user ? req.user.id : null;
 
   try {
     const postResult = await pool.query(
@@ -113,10 +103,9 @@ router.get('/:id', async (req, res) => {
          u.full_name,
          u.profile_picture_url,
          u.is_private,
-         COUNT(DISTINCT l.id) AS like_count
+         (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
        FROM posts p
        JOIN users u ON p.user_id = u.id
-       LEFT JOIN likes l ON p.id = l.post_id
        WHERE p.id = $1
        GROUP BY p.id, u.id`,
       [postId]
@@ -130,7 +119,10 @@ router.get('/:id', async (req, res) => {
 
     // Check if the profile is private and if the viewer is authorized to see the post
     if (post.is_private) {
-      if (!viewerId || (viewerId !== post.user_id && !(await isFollowing(viewerId, post.user_id)))) {
+      const isOwner = viewerId && viewerId === post.user_id;
+      const isFollower = viewerId ? await isFollowing(viewerId, post.user_id) : false;
+
+      if (!isOwner && !isFollower) {
         return res.status(403).json({ msg: 'This account is private.' });
       }
     }
