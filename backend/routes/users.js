@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
 const auth = require('../middleware/auth'); // Import auth middleware
+const optionalAuth = require('../middleware/optionalAuth');
 const jwt = require('jsonwebtoken'); // Import jwt
 const multer = require('multer'); // Import multer
 const path = require('path'); // Import path module
@@ -75,22 +76,10 @@ router.get('/search', auth, async (req, res) => {
 
 // @route   GET /api/users/:username
 // @desc    Get user profile
-// @access  Public (but posts may be restricted for private profiles)
-router.get('/:username', async (req, res) => {
+// @access  Public (with checks for private/blocked profiles)
+router.get('/:username', optionalAuth, async (req, res) => {
   const { username } = req.params;
-  let viewerId = null;
-
-  // Manually check for token, similar to auth middleware but doesn't restrict access if no token
-  const token = req.header('x-auth-token');
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, 'secret'); // 'secret' should be an environment variable
-      viewerId = decoded.user.id;
-    } catch (err) {
-      // Token is invalid, treat as unauthenticated
-      viewerId = null;
-    }
-  }
+  const viewerId = req.user ? req.user.id : null;
 
   try {
     const userResult = await pool.query('SELECT id, username, full_name, bio, profile_picture_url, is_private FROM users WHERE username = $1', [username]);
@@ -100,58 +89,57 @@ router.get('/:username', async (req, res) => {
     }
 
     const targetUser = userResult.rows[0];
+
+    // Block check
+    if (viewerId) {
+      const isBlocked = await pool.query(
+        'SELECT * FROM blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)',
+        [viewerId, targetUser.id]
+      );
+      if (isBlocked.rows.length > 0) {
+        return res.status(404).json({ msg: 'User not found' });
+      }
+    }
+
     let posts = [];
     let followerCount = 0;
     let followingCount = 0;
 
-    // Fetch follower count
+    // Fetch follower and following counts
     const followersResult = await pool.query(
       'SELECT COUNT(*) FROM followers WHERE followee_id = $1 AND status = $2',
       [targetUser.id, 'accepted']
     );
     followerCount = parseInt(followersResult.rows[0].count);
 
-    // Fetch following count
     const followingResult = await pool.query(
       'SELECT COUNT(*) FROM followers WHERE follower_id = $1 AND status = $2',
       [targetUser.id, 'accepted']
     );
     followingCount = parseInt(followingResult.rows[0].count);
 
-    // Check if the profile is private and if the viewer is authorized to see posts
-    if (targetUser.is_private) {
-      const postQuery = `
-        SELECT p.id AS post_id, p.user_id, p.caption, p.created_at, (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
-        FROM posts p WHERE p.user_id = $1 ORDER BY p.created_at DESC
-      `;
-      // If the viewer is the owner of the profile, or if the viewer is following
-      if (viewerId && (viewerId === targetUser.id)) {
-        // Owner can see all their posts and their media
-        const userPosts = (await pool.query(postQuery, [targetUser.id])).rows;
-        posts = await Promise.all(userPosts.map(async (post) => {
-          const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
-          return { ...post, media: media.rows };
-        }));
-      } else if (viewerId) {
-        // Check if viewer is following the target user
-        const isFollowing = await pool.query(
-          'SELECT * FROM followers WHERE follower_id = $1 AND followee_id = $2 AND status = $3',
-          [viewerId, targetUser.id, 'accepted']
-        );
-        if (isFollowing.rows.length > 0) {
-          const userPosts = (await pool.query(postQuery, [targetUser.id])).rows;
-          posts = await Promise.all(userPosts.map(async (post) => {
-            const media = await pool.query('SELECT id, media_url, media_type FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
-            return { ...post, media: media.rows };
-          }));
-        }
+    // Authorization check for posts
+    let canViewPosts = !targetUser.is_private;
+    if (viewerId) {
+      const isOwner = viewerId === targetUser.id;
+      const isFollowingResult = await pool.query('SELECT 1 FROM followers WHERE follower_id = $1 AND followee_id = $2 AND status = $3', [viewerId, targetUser.id, 'accepted']);
+      const isFollowing = isFollowingResult.rows.length > 0;
+      if (isOwner || isFollowing) {
+        canViewPosts = true;
       }
-      // If not authenticated or not following, posts array remains empty
-    } else {
-      // Public profile, everyone can see posts and their media
+    }
+
+    if (canViewPosts) {
       const postQuery = `
-        SELECT p.id AS post_id, p.user_id, p.caption, p.created_at, (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
-        FROM posts p WHERE p.user_id = $1 ORDER BY p.created_at DESC
+        SELECT 
+          p.id AS post_id, 
+          p.user_id, 
+          p.caption, 
+          p.created_at, 
+          (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
+        FROM posts p 
+        WHERE p.user_id = $1 
+        ORDER BY p.created_at DESC
       `;
       const userPosts = (await pool.query(postQuery, [targetUser.id])).rows;
       posts = await Promise.all(userPosts.map(async (post) => {
@@ -305,6 +293,16 @@ router.post('/:id/follow', auth, async (req, res) => {
   }
 
   try {
+    // Check if a block exists between the two users
+    const blockCheck = await pool.query(
+      'SELECT * FROM blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)',
+      [followerId, followeeId]
+    );
+
+    if (blockCheck.rows.length > 0) {
+      return res.status(403).json({ msg: 'Action forbidden due to a block.' });
+    }
+
     // Check if followee exists
     const followeeExists = await pool.query('SELECT id, is_private FROM users WHERE id = $1', [followeeId]);
     if (followeeExists.rows.length === 0) {
@@ -431,38 +429,54 @@ router.post('/:id/block', auth, async (req, res) => {
     return res.status(400).json({ msg: 'You cannot block yourself' });
   }
 
+  const client = await pool.connect();
+
   try {
+    await client.query('BEGIN');
+
     // Check if blocked user exists
-    const blockedUserExists = await pool.query('SELECT id FROM users WHERE id = $1', [blockedId]);
+    const blockedUserExists = await client.query('SELECT id FROM users WHERE id = $1', [blockedId]);
     if (blockedUserExists.rows.length === 0) {
-      return res.status(404).json({ msg: 'User to block not found' });
+      throw new Error('User to block not found');
     }
 
     // Check if already blocked
-    const alreadyBlocked = await pool.query(
+    const alreadyBlocked = await client.query(
       'SELECT * FROM blocks WHERE blocker_id = $1 AND blocked_id = $2',
       [blockerId, blockedId]
     );
-
     if (alreadyBlocked.rows.length > 0) {
-      return res.status(400).json({ msg: 'User already blocked' });
+      throw new Error('User already blocked');
     }
 
-    await pool.query(
+    // Insert block record
+    await client.query(
       'INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)',
       [blockerId, blockedId]
     );
 
-    // If blocker was following blocked user, unfollow them
-    await pool.query(
-      'DELETE FROM followers WHERE follower_id = $1 AND followee_id = $2',
+    // Remove any existing follow relationships in both directions
+    await client.query(
+      'DELETE FROM followers WHERE (follower_id = $1 AND followee_id = $2) OR (follower_id = $2 AND followee_id = $1)',
       [blockerId, blockedId]
     );
 
+    await client.query('COMMIT');
+
     res.json({ msg: 'User blocked successfully' });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err.message);
+    // Determine status code based on error message
+    if (err.message === 'User to block not found') {
+      return res.status(404).json({ msg: err.message });
+    }
+    if (err.message === 'User already blocked') {
+      return res.status(400).json({ msg: err.message });
+    }
     res.status(500).send('Server error');
+  } finally {
+    client.release();
   }
 });
 

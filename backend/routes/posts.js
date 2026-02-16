@@ -103,11 +103,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
          u.full_name,
          u.profile_picture_url,
          u.is_private,
-         (SELECT COUNT(*) FROM likes WHERE post_id = p.id)::int AS like_count
+         (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id AND NOT EXISTS (SELECT 1 FROM blocks WHERE (blocker_id = u.id AND blocked_id = l.user_id) OR (blocker_id = l.user_id AND blocked_id = u.id)))::int AS like_count
        FROM posts p
        JOIN users u ON p.user_id = u.id
-       WHERE p.id = $1
-       GROUP BY p.id, u.id`,
+       WHERE p.id = $1`,
       [postId]
     );
 
@@ -116,6 +115,17 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
 
     const post = postResult.rows[0];
+
+    // Block check
+    if (viewerId) {
+      const isBlocked = await pool.query(
+        'SELECT * FROM blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)',
+        [viewerId, post.user_id]
+      );
+      if (isBlocked.rows.length > 0) {
+        return res.status(404).json({ msg: 'Post not found' });
+      }
+    }
 
     // Check if the profile is private and if the viewer is authorized to see the post
     if (post.is_private) {
@@ -346,6 +356,14 @@ router.post('/:id/like', auth, async (req, res) => {
     const postInfo = postVisibilityResult.rows[0];
     const postOwnerId = postInfo.user_id;
 
+    const isBlocked = await pool.query(
+        'SELECT * FROM blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)',
+        [userId, postOwnerId]
+      );
+      if (isBlocked.rows.length > 0) {
+        return res.status(403).json({ msg: 'Action not allowed due to a block.' });
+      }
+
     // If the post owner's profile is private, check for follow status
     if (postInfo.is_private && postOwnerId !== userId) {
       const isFollower = await isFollowing(userId, postOwnerId);
@@ -548,18 +566,33 @@ router.delete('/:postId/comments/:commentId', auth, async (req, res) => {
 // @route   GET /api/posts/:postId/comments
 // @desc    Get all comments for a post
 // @access  Public
-router.get('/:postId/comments', async (req, res) => {
+router.get('/:postId/comments', optionalAuth, async (req, res) => {
   const postId = parseInt(req.params.postId);
+  const viewerId = req.user ? req.user.id : null;
 
   try {
-    const comments = await pool.query(
-      `SELECT c.id, c.content, c.created_at, u.id AS user_id, u.username
-       FROM comments c
-       JOIN users u ON c.user_id = u.id
-       WHERE c.post_id = $1
-       ORDER BY c.created_at DESC`,
-      [postId]
-    );
+    let query = `
+      SELECT c.id, c.content, c.created_at, u.id AS user_id, u.username
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = $1
+    `;
+    const params = [postId];
+
+    if (viewerId) {
+      query += `
+        AND NOT EXISTS (
+          SELECT 1 FROM blocks 
+          WHERE (blocker_id = $2 AND blocked_id = c.user_id) 
+             OR (blocker_id = c.user_id AND blocked_id = $2)
+        )
+      `;
+      params.push(viewerId);
+    }
+    
+    query += ' ORDER BY c.created_at DESC';
+
+    const comments = await pool.query(query, params);
 
     res.json(comments.rows);
   } catch (err) {

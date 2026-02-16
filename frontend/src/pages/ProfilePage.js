@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import PostGrid from '../components/profile/PostGrid';
 import { useAuth } from '../context/AuthContext';
@@ -11,10 +11,12 @@ import PrivateProfileMessage from '../components/profile/PrivateProfileMessage';
 
 const ProfilePage = () => {
   const { username } = useParams();
+  const history = useHistory();
   const { user: authUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [blockSuccess, setBlockSuccess] = useState(false);
   const [followStatus, setFollowStatus] = useState('none');
   const [isBlocked, setIsBlocked] = useState(false);
   const [followers, setFollowers] = useState([]);
@@ -58,6 +60,15 @@ const ProfilePage = () => {
     fetchProfileAndStatus();
   }, [fetchProfileAndStatus]);
 
+  useEffect(() => {
+    if (blockSuccess) {
+      const timer = setTimeout(() => {
+        history.push('/');
+      }, 2000); // 2-second delay before redirecting
+      return () => clearTimeout(timer);
+    }
+  }, [blockSuccess, history]);
+
   const handleFollow = async () => {
     if (!authUser || !profile) return;
     try {
@@ -84,9 +95,7 @@ const ProfilePage = () => {
     if (!authUser || !profile) return;
     try {
       await api.blockUser(profile.id);
-      setIsBlocked(true);
-      setFollowStatus('none');
-      fetchProfileAndStatus();
+      setBlockSuccess(true);
     } catch (err) {
       setError(err.message);
     }
@@ -196,6 +205,10 @@ const ProfilePage = () => {
   if (loading) {
     return <div>Loading...</div>;
   }
+  
+  if (blockSuccess) {
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}>User successfully blocked. You will be redirected to the home page shortly.</div>;
+  }
 
   if (error) {
     return <div style={{ color: 'red' }}>{error}</div>;
@@ -288,3 +301,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+
