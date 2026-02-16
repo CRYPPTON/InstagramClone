@@ -11,7 +11,7 @@ import PrivateProfileMessage from '../components/profile/PrivateProfileMessage';
 
 const ProfilePage = () => {
   const { username } = useParams();
-  const history = useHistory();
+  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,11 +63,11 @@ const ProfilePage = () => {
   useEffect(() => {
     if (blockSuccess) {
       const timer = setTimeout(() => {
-        history.push('/');
+        navigate('/');
       }, 2000); // 2-second delay before redirecting
       return () => clearTimeout(timer);
     }
-  }, [blockSuccess, history]);
+  }, [blockSuccess, navigate]);
 
   const handleFollow = async () => {
     if (!authUser || !profile) return;
