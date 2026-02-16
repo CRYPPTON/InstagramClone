@@ -1,7 +1,6 @@
 import React from 'react';
 import Button from '../common/Button';
 import { Link } from 'react-router-dom';
-import { getImageUrl } from '../../services/api';
 
 const ProfileHeader = ({
   user,
@@ -18,8 +17,9 @@ const ProfileHeader = ({
   onShowFollowers,
   onShowFollowing,
   onShowBlockedUsers,
+  api,
 }) => {
-  const profilePictureUrl = getImageUrl(user.profile_picture_url);
+  const profilePictureUrl = api.getMediaUrl(user.profile_picture_url);
 
   const renderFollowButton = () => {
     if (isOwner) {
@@ -43,7 +43,7 @@ const ProfileHeader = ({
       case 'none':
         return <Button onClick={onFollow}>Follow</Button>;
       case 'pending':
-        return <Button disabled>Requested</Button>;
+        return <Button onClick={onUnfollow}>Requested</Button>;
       case 'accepted':
         return <Button onClick={onUnfollow}>Unfollow</Button>;
       default:

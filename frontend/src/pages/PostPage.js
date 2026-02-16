@@ -18,12 +18,26 @@ const PostPage = () => {
       const fetchedPost = await api.getPost(postId);
       setPost(fetchedPost);
     } catch (err) {
-      setError('Failed to fetch post.');
-      console.error(err);
+      if (authUser) {
+        try {
+          const userProfile = await api.getProfile(authUser.username);
+          const foundPost = userProfile.posts.find(p => p.post_id === parseInt(postId));
+          if (foundPost) {
+            setPost(foundPost);
+          } else {
+            setError('This post is from a private account.');
+          }
+        } catch (profileErr) {
+          setError('Failed to fetch post.');
+          console.error(profileErr);
+        }
+      } else {
+        setError('This post is from a private account.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [postId, authUser]);
 
   useEffect(() => {
     fetchPost();
@@ -51,7 +65,14 @@ const PostPage = () => {
   }
 
   if (error) {
-    return <div style={{ color: 'red' }}>{error}</div>;
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <h2>{error}</h2>
+        <a href="#" onClick={handleBack} style={{ display: 'block', marginTop: '20px', color: '#00376b', textDecoration: 'none' }}>
+          &larr; Back
+        </a>
+      </div>
+    );
   }
 
   if (!post) {

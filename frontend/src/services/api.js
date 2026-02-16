@@ -44,6 +44,7 @@ const request = async (method, url, data = null, isFormData = false) => {
 };
 
 const api = {
+  getMediaUrl: getImageUrl,
   login: async (credentials) => request('POST', '/auth/login', credentials),
 
   register: async (userData) => request('POST', '/auth/register', userData),

@@ -17,11 +17,8 @@ const ProfileEditPage = () => {
   const [profilePictureFile, setProfilePictureFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [followRequests, setFollowRequests] = useState([]);
-  const [requestsLoading, setRequestsLoading] = useState(true);
-  const [requestsError, setRequestsError] = useState('');
 
-  const fetchProfileAndRequests = useCallback(async () => {
+  const fetchProfile = useCallback(async () => {
     if (!authUser) return;
     try {
       const userProfile = await api.getProfile(authUser.username);
@@ -31,22 +28,17 @@ const ProfileEditPage = () => {
         is_private: userProfile.is_private || false,
         profile_picture_url: userProfile.profile_picture_url || '',
       });
-
-      const requests = await api.getFollowRequests(authUser.id);
-      setFollowRequests(requests);
     } catch (err) {
       setError('Failed to load profile data.');
-      setRequestsError('Failed to load follow requests.');
       console.error(err);
     } finally {
       setLoading(false);
-      setRequestsLoading(false);
     }
   }, [authUser]);
 
   useEffect(() => {
-    fetchProfileAndRequests();
-  }, [fetchProfileAndRequests]);
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -84,24 +76,6 @@ const ProfileEditPage = () => {
     }
   };
 
-  const handleRequestAction = async (followerId, action) => {
-    setRequestsLoading(true);
-    setRequestsError('');
-    try {
-      if (action === 'accept') {
-        await api.acceptFollowRequest(authUser.id, followerId);
-      } else {
-        await api.rejectFollowRequest(authUser.id, followerId);
-      }
-      fetchProfileAndRequests(); // Refresh requests list
-    } catch (err) {
-      setRequestsError(err.message || `Failed to ${action} request.`);
-      console.error(err);
-    } finally {
-      setRequestsLoading(false);
-    }
-  };
-
   if (!authUser) {
     return <div>Please log in to edit your profile.</div>;
   }
@@ -118,7 +92,7 @@ const ProfileEditPage = () => {
         <div style={{ marginBottom: '15px' }}>
           <label htmlFor="profile_picture">Profile Picture:</label>
           {profileData.profile_picture_url && (
-            <img src={profileData.profile_picture_url} alt="Current Profile" style={{ width: '100px', height: '100px', borderRadius: '50%', display: 'block', marginBottom: '10px' }} />
+            <img src={api.getMediaUrl(profileData.profile_picture_url)} alt="Current Profile" style={{ width: '100px', height: '100px', borderRadius: '50%', display: 'block', marginBottom: '10px' }} />
           )}
           <input type="file" id="profile_picture" name="profile_picture" onChange={handleFileChange} />
         </div>
@@ -166,26 +140,9 @@ const ProfileEditPage = () => {
 
       <hr style={{ margin: '30px 0' }} />
 
-      <h2>Follow Requests</h2>
-      {requestsError && <p style={{ color: 'red' }}>{requestsError}</p>}
-      {requestsLoading ? (
-        <div>Loading requests...</div>
-      ) : (
-        followRequests.length === 0 ? (
-          <p>No pending follow requests.</p>
-        ) : (
-          <div>
-            {followRequests.map((request) => (
-              <div key={request.follower_id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                <img src={request.profile_picture_url || 'https://via.placeholder.com/50'} alt="Requester" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
-                <span style={{ fontWeight: 'bold', marginRight: '10px' }}>{request.username}</span>
-                <Button onClick={() => handleRequestAction(request.follower_id, 'accept')} style={{ marginRight: '5px' }}>Accept</Button>
-                <Button onClick={() => handleRequestAction(request.follower_id, 'reject')} variant="secondary">Reject</Button>
-              </div>
-            ))}
-          </div>
-        )
-      )}
+      <Button onClick={() => navigate('/follow-requests')}>
+        View Follow Requests
+      </Button>
     </div>
   );
 };

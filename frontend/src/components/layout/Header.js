@@ -27,6 +27,7 @@ const Header = () => {
         <Link to="/search" style={{ marginRight: '15px' }}>Search</Link>
         <Link to="/create-post" style={{ marginRight: '15px' }}>Create Post</Link>
         <Link to="/profile" style={{ marginRight: '15px' }}>Profile</Link>
+        <Link to="/follow-requests" style={{ marginRight: '15px' }}>Follow Requests</Link>
         <Button onClick={handleLogout}>Logout</Button>
       </nav>
     </header>

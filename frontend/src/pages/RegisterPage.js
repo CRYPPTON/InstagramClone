@@ -18,6 +18,17 @@ const RegisterPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!email || !fullName || !username || !password) {
+      setError('Svi podaci su obavezni'); // "All fields are required"
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
 
     try {

@@ -217,17 +217,15 @@ router.get('/:followeeId/followers/:followerId/status', auth, async (req, res) =
 // @access  Private
 router.put('/:id', auth, upload.single('profile_picture'), async (req, res) => {
   const { full_name, bio } = req.body;
-  const is_private = req.body.is_private === 'true'; // Define is_private here
-  const is_private_string = is_private ? 'TRUE' : 'FALSE'; // Convert boolean to string for SQL
-  const userId = parseInt(req.params.id); // Ensure userId is an integer
+  const is_private = req.body.is_private === 'true';
+  const userId = parseInt(req.params.id);
+  const profile_picture = req.file;
+
   if (isNaN(userId)) {
     return res.status(400).json({ msg: 'Invalid User ID' });
   }
-  const profile_picture = req.file; // Multer adds file info to req.file
 
-  // Check if authenticated user is updating their own profile
-  if (req.user.id !== parseInt(userId)) {
-    // If a file was uploaded but user is not authorized, delete the file
+  if (req.user.id !== userId) {
     if (profile_picture) {
       fs.unlink(profile_picture.path, (err) => {
         if (err) console.error('Error deleting unauthorized profile picture:', err);
@@ -236,37 +234,43 @@ router.put('/:id', auth, upload.single('profile_picture'), async (req, res) => {
     return res.status(403).json({ msg: 'Forbidden: You can only update your own profile' });
   }
 
-  let profile_picture_url = null;
-  if (profile_picture) {
-    profile_picture_url = `/uploads/${profile_picture.filename}`;
-  }
+  const client = await pool.connect();
 
   try {
-    // Before updating, get the current profile_picture_url to delete old file if a new one is uploaded
-    const currentUserResult = await pool.query('SELECT profile_picture_url FROM users WHERE id = $1', [userId]);
-    const currentProfilePictureUrl = currentUserResult.rows[0]?.profile_picture_url;
+    await client.query('BEGIN');
 
-    let query = 'UPDATE users SET full_name = $1, bio = $2, is_private = $3 WHERE id = $4 RETURNING id, username, full_name, bio, profile_picture_url, is_private';
-    let queryParams = [full_name, bio, is_private_string, userId];
+    const currentUserResult = await client.query('SELECT is_private, profile_picture_url FROM users WHERE id = $1', [userId]);
+    if (currentUserResult.rows.length === 0) {
+      throw new Error('User not found');
+    }
+    const was_private = currentUserResult.rows[0].is_private;
+    const currentProfilePictureUrl = currentUserResult.rows[0].profile_picture_url;
+
+    const profile_picture_url = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    const params = [full_name, bio, is_private];
+    let query;
 
     if (profile_picture_url) {
-      query = 'UPDATE users SET full_name = $1, bio = $2, is_private = $3, profile_picture_url = $4 WHERE id = $5 RETURNING id, username, full_name, bio, profile_picture_url, is_private';
-      queryParams = [full_name, bio, is_private_string, profile_picture_url, userId];
+        params.push(profile_picture_url);
+        params.push(userId);
+        query = 'UPDATE users SET full_name = $1, bio = $2, is_private = $3, profile_picture_url = $4 WHERE id = $5 RETURNING *';
+    } else {
+        params.push(userId);
+        query = 'UPDATE users SET full_name = $1, bio = $2, is_private = $3 WHERE id = $4 RETURNING *';
+    }
+    
+    const updatedUser = await client.query(query, params);
+
+    if (was_private && !is_private) {
+      await client.query(
+        "UPDATE followers SET status = 'accepted' WHERE followee_id = $1 AND status = 'pending'",
+        [userId]
+      );
     }
 
-    const updatedUser = await pool.query(query, queryParams);
+    await client.query('COMMIT');
 
-    if (updatedUser.rows.length === 0) {
-      // If a file was uploaded but user not found, delete the file
-      if (profile_picture) {
-        fs.unlink(profile_picture.path, (err) => {
-          if (err) console.error('Error deleting profile picture for non-existent user:', err);
-        });
-      }
-      return res.status(404).json({ msg: 'User not found' });
-    }
-
-    // If a new profile picture was uploaded and an old one existed, delete the old file
     if (profile_picture && currentProfilePictureUrl && currentProfilePictureUrl.startsWith('/uploads/')) {
       const oldFilePath = path.join(__dirname, '..', currentProfilePictureUrl);
       fs.unlink(oldFilePath, (err) => {
@@ -276,8 +280,16 @@ router.put('/:id', auth, upload.single('profile_picture'), async (req, res) => {
 
     res.json(updatedUser.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err.message);
+    if (profile_picture) {
+      fs.unlink(profile_picture.path, (err) => {
+        if (err) console.error('Error deleting profile picture after transaction rollback:', err);
+      });
+    }
     res.status(500).send('Server error');
+  } finally {
+    client.release();
   }
 });
 
