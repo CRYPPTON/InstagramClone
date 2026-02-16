@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Post from '../components/post/Post';
 import api from '../services/api';
+import PullToRefresh from 'react-simple-pull-to-refresh';
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -9,6 +10,7 @@ const HomePage = () => {
 
   const fetchPosts = useCallback(async () => {
     try {
+      setLoading(true);
       const fetchedPosts = await api.getPosts();
       setPosts(fetchedPosts);
     } catch (err) {
@@ -32,7 +34,7 @@ const HomePage = () => {
     ));
   };
 
-  if (loading) {
+  if (loading && posts.length === 0) {
     return <div>Loading...</div>;
   }
 
@@ -41,16 +43,18 @@ const HomePage = () => {
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      {posts.map(post => (
-        <Post
-          key={post.post_id}
-          post={post}
-          onPostDeleted={handlePostDeleted}
-          onPostUpdated={handlePostUpdated}
-        />
-      ))}
-    </div>
+    <PullToRefresh onRefresh={fetchPosts}>
+      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+        {posts.map(post => (
+          <Post
+            key={post.post_id}
+            post={post}
+            onPostDeleted={handlePostDeleted}
+            onPostUpdated={handlePostUpdated}
+          />
+        ))}
+      </div>
+    </PullToRefresh>
   );
 };
 

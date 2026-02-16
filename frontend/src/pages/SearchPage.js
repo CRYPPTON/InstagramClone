@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Input from '../components/common/Input';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api'; // Import getImageUrl
 import { useAuth } from '../context/AuthContext';
 
 const SearchPage = () => {
@@ -59,7 +59,7 @@ const SearchPage = () => {
           ) : (
             searchResults.map((user) => (
               <div key={user.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                <img src={user.profile_picture_url || 'https://via.placeholder.com/50'} alt="Profile" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+                <img src={getImageUrl(user.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="Profile" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
                 <Link to={`/profile/${user.username}`} style={{ textDecoration: 'none', color: 'black', fontWeight: 'bold' }}>
                   {user.username} {user.full_name ? `(${user.full_name})` : ''}
                 </Link>

@@ -239,7 +239,7 @@ const ProfilePage = () => {
           <h2>Followers</h2>
           {followers.map((follower) => (
             <div key={follower.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <img src={getImageUrl(follower.profile_picture_url) || 'https://via.placeholder.com/50'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+              <img src={getImageUrl(follower.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
               <Link to={`/profile/${follower.username}`}>{follower.username}</Link>
               {isOwner && (
                 <Button onClick={() => handleRemoveFollower(profile.id, follower.id, follower.username)} style={{ marginLeft: 'auto' }} variant="danger">
@@ -260,7 +260,7 @@ const ProfilePage = () => {
           <h2>Following</h2>
           {following.map((follow) => (
             <div key={follow.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <img src={getImageUrl(follow.profile_picture_url) || 'https://via.placeholder.com/50'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+              <img src={getImageUrl(follow.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
               <Link to={`/profile/${follow.username}`}>{follow.username}</Link>
               {authUser && authUser.id !== follow.id && (
                 <Button onClick={() => handleFollowFromModal(follow.id, true)} style={{ marginLeft: 'auto' }}>

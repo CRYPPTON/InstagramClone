@@ -237,39 +237,56 @@ router.put('/:id', auth, async (req, res) => {
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   const postId = parseInt(req.params.id);
+  if (isNaN(postId)) {
+    return res.status(400).json({ msg: 'Invalid post ID' });
+  }
   const userId = req.user.id;
+  const client = await pool.connect();
 
   try {
+    await client.query('BEGIN');
+
     // Check if the post exists and belongs to the authenticated user
-    const postResult = await pool.query('SELECT user_id FROM posts WHERE id = $1', [postId]);
+    const postResult = await client.query('SELECT user_id FROM posts WHERE id = $1', [postId]);
     if (postResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ msg: 'Post not found' });
     }
     if (postResult.rows[0].user_id !== userId) {
+      await client.query('ROLLBACK');
       return res.status(403).json({ msg: 'Forbidden: You can only delete your own posts' });
     }
 
     // Get all media associated with the post to delete files
-    const mediaResults = await pool.query('SELECT media_url FROM media WHERE post_id = $1', [postId]);
+    const mediaResults = await client.query('SELECT media_url FROM media WHERE post_id = $1', [postId]);
 
-    // Delete media records from the database
-    await pool.query('DELETE FROM media WHERE post_id = $1', [postId]);
+    // Delete related data
+    await client.query('DELETE FROM likes WHERE post_id = $1', [postId]);
+    await client.query('DELETE FROM comments WHERE post_id = $1', [postId]);
+    await client.query('DELETE FROM media WHERE post_id = $1', [postId]);
 
-    // Delete the post from the database
-    await pool.query('DELETE FROM posts WHERE id = $1', [postId]);
+    // Finally, delete the post itself
+    await client.query('DELETE FROM posts WHERE id = $1', [postId]);
 
-    // Delete associated files from the filesystem
+    await client.query('COMMIT');
+
+    // Delete associated files from the filesystem after the transaction is successful
     mediaResults.rows.forEach(media => {
-      const filePath = path.join(__dirname, '..', media.media_url);
-      fs.unlink(filePath, (err) => {
-        if (err) console.error(`Failed to delete file ${filePath}:`, err);
-      });
+      if (media.media_url) {
+        const filePath = path.join(__dirname, '..', media.media_url);
+        fs.unlink(filePath, (err) => {
+          if (err) console.error(`Failed to delete file ${filePath}:`, err);
+        });
+      }
     });
 
-    res.json({ msg: 'Post and associated media deleted successfully' });
+    res.json({ msg: 'Post and all associated data deleted successfully' });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send('Server error during post deletion');
+  } finally {
+    client.release();
   }
 });
 

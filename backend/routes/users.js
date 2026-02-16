@@ -61,7 +61,7 @@ router.get('/search', auth, async (req, res) => {
        WHERE (username ILIKE $1 OR full_name ILIKE $1)
          AND id != $2 -- Exclude self
          AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = $2 AND blocked_id = users.id) -- Not blocked by searcher
-         AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = u.id AND blocked_id = $2) -- Searcher not blocked by them
+         AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = users.id AND blocked_id = $2) -- Searcher not blocked by them
        ORDER BY username ASC`,
       [`%${query}%`, userId]
     );

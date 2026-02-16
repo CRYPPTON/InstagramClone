@@ -55,7 +55,7 @@ const ProfileHeader = ({
     <div style={{ display: 'flex', marginBottom: '44px' }}>
       <div style={{ marginRight: '30px' }}>
         <img
-          src={profilePictureUrl || 'https://via.placeholder.com/150'}
+          src={profilePictureUrl || process.env.PUBLIC_URL + '/noImage.jpg'}
           alt="avatar"
           style={{ width: '150px', height: '150px', borderRadius: '50%' }}
         />
