@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Input from '../components/common/Input';
-import Button from '../components/common/Button';
+import { Form, Button, Container, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -20,7 +19,7 @@ const RegisterPage = () => {
     setError('');
 
     if (!email || !fullName || !username || !password) {
-      setError('Svi podaci su obavezni'); // "All fields are required"
+      setError('All fields are required');
       return;
     }
     
@@ -43,45 +42,59 @@ const RegisterPage = () => {
   };
 
   return (
-    <div style={{ maxWidth: '350px', margin: '50px auto', textAlign: 'center' }}>
-      <h1>Instagram</h1>
-      <p style={{ color: '#8e8e8e', fontWeight: '600' }}>
-        Sign up to see photos and videos from your friends.
-      </p>
-      <form onSubmit={handleRegister}>
-        <Input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-        />
-        <Input
-          type="text"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Full Name"
-        />
-        <Input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Username"
-        />
-        <Input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Signing up...' : 'Sign Up'}
-        </Button>
-      </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <div style={{ marginTop: '20px' }}>
-        Have an account? <Link to="/login">Log in</Link>
-      </div>
-    </div>
+    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+      <Card style={{ width: '350px' }}>
+        <Card.Body>
+          <h1 className="text-center mb-4">Instagram</h1>
+          <p className="text-center text-muted">
+            Sign up to see photos and videos from your friends.
+          </p>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <Form onSubmit={handleRegister}>
+            <Form.Group className="mb-3">
+              <Form.Control
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Control
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Full Name"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Control
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Username"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Control
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+              />
+            </Form.Group>
+            <div className="d-grid">
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? 'Signing up...' : 'Sign Up'}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+        <Card.Footer className="text-center">
+          Have an account? <Link to="/login">Log in</Link>
+        </Card.Footer>
+      </Card>
+    </Container>
   );
 };
 

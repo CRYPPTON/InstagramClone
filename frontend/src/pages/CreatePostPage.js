@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Input from '../components/common/Input';
-import Button from '../components/common/Button';
+import { Form, Button, Container, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -49,34 +48,36 @@ const CreatePostPage = () => {
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '50px auto', padding: '20px', border: '1px solid #dbdbdb' }}>
+    <Container className="mt-5">
       <h2>Create New Post</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="media">Images/Videos (max 20, 50MB each):</label>
-          <input
+      {error && <Alert variant="danger">{error}</Alert>}
+      <Form onSubmit={handleSubmit}>
+        <Form.Group controlId="formFile" className="mb-3">
+          <Form.Label>Images/Videos (max 20, 50MB each):</Form.Label>
+          <Form.Control
             type="file"
-            id="media"
-            name="media"
             multiple
             accept="image/*,video/*"
             onChange={handleFileChange}
           />
-        </div>
-        <Input
-          label="Caption"
-          type="textarea"
-          name="caption"
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="Write a caption..."
-        />
-        <Button type="submit" disabled={loading}>
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Caption</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Write a caption..."
+          />
+        </Form.Group>
+        
+        <Button variant="primary" type="submit" disabled={loading}>
           {loading ? 'Posting...' : 'Post'}
         </Button>
-      </form>
-    </div>
+      </Form>
+    </Container>
   );
 };
 

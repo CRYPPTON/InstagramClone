@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Button, Modal, Image } from 'react-bootstrap';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import PostGrid from '../components/profile/PostGrid';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import Modal from '../components/common/Modal';
-import Button from '../components/common/Button';
 import BlockedUsersList from '../components/profile/BlockedUsersList';
 import PrivateProfileMessage from '../components/profile/PrivateProfileMessage';
 
@@ -211,18 +210,18 @@ const ProfilePage = () => {
   }
 
   if (error) {
-    return <div style={{ color: 'red' }}>{error}</div>;
+    return <div className="text-danger text-center mt-3">{error}</div>;
   }
 
   if (!profile) {
-    return <div>User not found.</div>;
+    return <div className="text-center mt-3">User not found.</div>;
   }
 
   const isOwner = authUser && authUser.id === profile.id;
   const canViewProfile = !profile.is_private || isOwner || followStatus === 'accepted';
 
   return (
-    <div style={{ maxWidth: '935px', margin: '0 auto' }}>
+    <Container>
       <ProfileHeader
         user={profile}
         postCount={profile.posts.length}
@@ -241,6 +240,8 @@ const ProfilePage = () => {
         api={api}
       />
 
+      <hr />
+
       {canViewProfile ? (
         <PostGrid
           posts={profile.posts}
@@ -250,49 +251,59 @@ const ProfilePage = () => {
       ) : (
         <PrivateProfileMessage onFollow={handleFollow} followStatus={followStatus} />
       )}
-      {showFollowers && canViewProfile && (
-        <Modal onClose={() => setShowFollowers(false)}>
-          <h2>Followers</h2>
+
+      <Modal show={showFollowers} onHide={() => setShowFollowers(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Followers</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           {followers.map((follower) => (
-            <div key={follower.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <img src={api.getMediaUrl(follower.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+            <div key={follower.id} className="d-flex align-items-center mb-3">
+              <Image src={api.getMediaUrl(follower.profile_picture_url) || '/noImage.jpg'} alt="avatar" roundedCircle width="50" height="50" className="me-3" />
               <Link to={`/profile/${follower.username}`}>{follower.username}</Link>
               {isOwner && (
-                <Button onClick={() => handleRemoveFollower(profile.id, follower.id, follower.username)} style={{ marginLeft: 'auto' }} variant="danger">
+                <Button onClick={() => handleRemoveFollower(profile.id, follower.id, follower.username)} variant="danger" size="sm" className="ms-auto">
                   Remove
                 </Button>
               )}
               {!isOwner && authUser && authUser.id !== follower.id && (
-                <Button onClick={() => handleFollowFromModal(follower.id, following.some(f => f.id === follower.id))} style={{ marginLeft: 'auto' }}>
+                <Button onClick={() => handleFollowFromModal(follower.id, following.some(f => f.id === follower.id))} size="sm" className="ms-auto">
                   {following.some(f => f.id === follower.id) ? 'Unfollow' : 'Follow'}
                 </Button>
               )}
             </div>
           ))}
-        </Modal>
-      )}
-      {showFollowing && canViewProfile && (
-        <Modal onClose={() => setShowFollowing(false)}>
-          <h2>Following</h2>
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showFollowing} onHide={() => setShowFollowing(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Following</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           {following.map((follow) => (
-            <div key={follow.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <img src={api.getMediaUrl(follow.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+            <div key={follow.id} className="d-flex align-items-center mb-3">
+              <Image src={api.getMediaUrl(follow.profile_picture_url) || '/noImage.jpg'} alt="avatar" roundedCircle width="50" height="50" className="me-3" />
               <Link to={`/profile/${follow.username}`}>{follow.username}</Link>
               {authUser && authUser.id !== follow.id && (
-                <Button onClick={() => handleFollowFromModal(follow.id, true)} style={{ marginLeft: 'auto' }}>
+                <Button onClick={() => handleFollowFromModal(follow.id, true)} size="sm" className="ms-auto">
                   Unfollow
                 </Button>
               )}
             </div>
           ))}
-        </Modal>
-      )}
-      {showBlockedUsers && (
-        <Modal onClose={() => setShowBlockedUsers(false)}>
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showBlockedUsers} onHide={() => setShowBlockedUsers(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Blocked Users</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <BlockedUsersList blockedUsers={blockedUsers} onUnblock={handleUnblock} />
-        </Modal>
-      )}
-    </div>
+        </Modal.Body>
+      </Modal>
+    </Container>
   );
 };
 

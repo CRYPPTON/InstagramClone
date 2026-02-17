@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Button from '../components/common/Button';
+import { Button, Image, Container } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api, { getImageUrl } from '../services/api';
+import { Link } from 'react-router-dom';
 
 const FollowRequestsPage = () => {
   const { user: authUser } = useAuth();
@@ -49,9 +50,9 @@ const FollowRequestsPage = () => {
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '50px auto', padding: '20px', border: '1px solid #dbdbdb' }}>
+    <Container className="mt-5">
       <h2>Follow Requests</h2>
-      {requestsError && <p style={{ color: 'red' }}>{requestsError}</p>}
+      {requestsError && <p className="text-danger">{requestsError}</p>}
       {requestsLoading ? (
         <div>Loading requests...</div>
       ) : (
@@ -60,17 +61,17 @@ const FollowRequestsPage = () => {
         ) : (
           <div>
             {followRequests.map((request) => (
-              <div key={request.follower_id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                <img src={getImageUrl(request.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="Requester" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
-                <span style={{ fontWeight: 'bold', marginRight: '10px' }}>{request.username}</span>
-                <Button onClick={() => handleRequestAction(request.follower_id, 'accept')} style={{ marginRight: '5px' }}>Accept</Button>
+              <div key={request.follower_id} className="d-flex align-items-center mb-3">
+                <Image src={getImageUrl(request.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="Requester" roundedCircle width="50" height="50" className="me-3" />
+                <Link to={`/profile/${request.username}`} className="fw-bold me-auto">{request.username}</Link>
+                <Button onClick={() => handleRequestAction(request.follower_id, 'accept')} className="me-2">Accept</Button>
                 <Button onClick={() => handleRequestAction(request.follower_id, 'reject')} variant="secondary">Reject</Button>
               </div>
             ))}
           </div>
         )
       )}
-    </div>
+    </Container>
   );
 };
 

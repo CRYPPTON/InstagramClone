@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Card, Button } from 'react-bootstrap';
 import PostHeader from './PostHeader';
 import PostActions from './PostActions';
 import PostComments from './PostComments';
 import Carousel from '../common/Carousel'; // Import Carousel
 import { useAuth } from '../../context/AuthContext'; // Import useAuth
-import Button from '../common/Button'; // Import Button for edit/delete actions
 import api from '../../services/api'; // Import api
 
 const Post = ({ post, onPostDeleted, onPostUpdated }) => {
@@ -61,52 +61,43 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
 
 
   return (
-    <div style={{ border: '1px solid #dbdbdb', borderRadius: '3px', marginBottom: '20px', backgroundColor: 'white' }}>
-      <Link to={`/profile/${post.username}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Card className="mb-4">
+      <Card.Header>
         <PostHeader username={post.username} avatar={post.profile_picture_url} />
-      </Link>
-
-      {isOwner && (
-        <div style={{ padding: '10px', textAlign: 'right' }}>
-          <Button onClick={() => setIsEditing(!isEditing)} style={{ marginRight: '10px' }}>
-            {isEditing ? 'Cancel Edit' : 'Edit Post'}
+        {isOwner && (
+        <div className="mt-2 text-end">
+          <Button variant="light" size="sm" onClick={() => setIsEditing(!isEditing)} className="me-2">
+            {isEditing ? 'Cancel' : 'Edit'}
           </Button>
-          <Button onClick={handleDeletePost} variant="danger">Delete Post</Button>
+          <Button variant="danger" size="sm" onClick={handleDeletePost}>Delete</Button>
         </div>
       )}
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
+      </Card.Header>
       <Carousel media={currentMedia} onDeleteMedia={isOwner && currentMedia.length > 1 ? handleDeleteMedia : null} />
-
-      <PostActions postId={post.post_id} initialLikeCount={post.like_count} onLikeUpdate={handleLikeUpdate} />
-      
-      <div style={{ padding: '0 10px' }}>
-        <p><strong>{post.like_count} likes</strong></p>
+      <Card.Body>
+        <PostActions postId={post.post_id} initialLikeCount={post.like_count} onLikeUpdate={handleLikeUpdate} />
+        <Card.Text>
+          <strong>{post.like_count} likes</strong>
+        </Card.Text>
         {isEditing ? (
           <div>
             <textarea
+              className="form-control"
               value={editedCaption}
               onChange={(e) => setEditedCaption(e.target.value)}
-              placeholder="Edit caption..."
-              rows="3"
-              style={{
-                border: '1px solid #dbdbdb',
-                borderRadius: '3px',
-                padding: '9px',
-                backgroundColor: '#fafafa',
-                width: '100%',
-                marginBottom: '10px'
-              }}
+              rows="2"
             ></textarea>
-            <Button onClick={handleUpdateCaption}>Save Caption</Button>
+            <Button variant="primary" size="sm" className="mt-2" onClick={handleUpdateCaption}>Save</Button>
           </div>
         ) : (
-          <p><strong>{post.username}</strong> {post.caption}</p>
+          <p><strong><Link to={`/profile/${post.username}`}>{post.username}</Link></strong> {post.caption}</p>
         )}
-      </div>
-      <PostComments postId={post.post_id} ownerId={post.user_id} />
-    </div>
+        {error && <p className="text-danger mt-2">{error}</p>}
+      </Card.Body>
+      <Card.Footer>
+        <PostComments postId={post.post_id} ownerId={post.user_id} />
+      </Card.Footer>
+    </Card>
   );
 };
 

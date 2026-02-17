@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Input from '../components/common/Input';
-import Button from '../components/common/Button';
+import { Form, Button, Container, Card, Alert } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -30,30 +29,41 @@ const LoginPage = () => {
   };
 
   return (
-    <div style={{ maxWidth: '350px', margin: '50px auto', textAlign: 'center' }}>
-      <h1>Instagram</h1>
-      <form onSubmit={handleLogin}>
-        <Input
-          type="text"
-          value={loginIdentifier}
-          onChange={(e) => setLoginIdentifier(e.target.value)}
-          placeholder="Username or Email"
-        />
-        <Input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Log In'}
-        </Button>
-      </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <div style={{ marginTop: '20px' }}>
-        Don't have an account? <Link to="/register">Sign up</Link>
-      </div>
-    </div>
+    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+      <Card style={{ width: '350px' }}>
+        <Card.Body>
+          <h1 className="text-center mb-4">Instagram</h1>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <Form onSubmit={handleLogin}>
+            <Form.Group className="mb-3" controlId="formBasicEmail">
+              <Form.Control
+                type="text"
+                value={loginIdentifier}
+                onChange={(e) => setLoginIdentifier(e.target.value)}
+                placeholder="Username or Email"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="formBasicPassword">
+              <Form.Control
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+              />
+            </Form.Group>
+            <div className="d-grid">
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? 'Logging in...' : 'Log In'}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+        <Card.Footer className="text-center">
+          Don't have an account? <Link to="/register">Sign up</Link>
+        </Card.Footer>
+      </Card>
+    </Container>
   );
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '../common/Button';
+import { Button, Image } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
 const ProfileHeader = ({
@@ -26,9 +26,9 @@ const ProfileHeader = ({
       return (
         <>
           <Link to="/accounts/edit">
-            <Button>Edit Profile</Button>
+            <Button variant="light">Edit Profile</Button>
           </Link>
-          <Button onClick={onShowBlockedUsers} style={{ marginLeft: '10px' }}>
+          <Button onClick={onShowBlockedUsers} variant="light" className="ms-2">
             Blocked Users
           </Button>
         </>
@@ -43,7 +43,7 @@ const ProfileHeader = ({
       case 'none':
         return <Button onClick={onFollow}>Follow</Button>;
       case 'pending':
-        return <Button onClick={onUnfollow}>Requested</Button>;
+        return <Button onClick={onUnfollow} variant="secondary">Requested</Button>;
       case 'accepted':
         return <Button onClick={onUnfollow}>Unfollow</Button>;
       default:
@@ -52,29 +52,30 @@ const ProfileHeader = ({
   };
 
   return (
-    <div style={{ display: 'flex', marginBottom: '44px' }}>
-      <div style={{ marginRight: '30px' }}>
-        <img
+    <div className="d-flex mb-5">
+      <div className="me-5">
+        <Image
           src={profilePictureUrl || process.env.PUBLIC_URL + '/noImage.jpg'}
           alt="avatar"
-          style={{ width: '150px', height: '150px', borderRadius: '50%' }}
+          roundedCircle
+          style={{ width: '150px', height: '150px' }}
         />
       </div>
       <div>
         <h2>{user.username}</h2>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="d-flex align-items-center mb-3">
           {renderFollowButton()}
           {!isOwner && !isBlocked && (
-            <Button onClick={onBlock} variant="secondary" style={{ marginLeft: '10px' }}>
+            <Button onClick={onBlock} variant="secondary" className="ms-2">
               Block
             </Button>
           )}
         </div>
-        <div style={{ display: 'flex', marginBottom: '20px' }}>
-          <div style={{ marginRight: '40px' }}>
+        <div className="d-flex mb-3">
+          <div className="me-4">
             <strong>{postCount}</strong> posts
           </div>
-          <div style={{ marginRight: '40px', cursor: 'pointer' }} onClick={onShowFollowers}>
+          <div className="me-4" style={{ cursor: 'pointer' }} onClick={onShowFollowers}>
             <strong>{followersCount}</strong> followers
           </div>
           <div style={{ cursor: 'pointer' }} onClick={onShowFollowing}>

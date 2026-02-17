@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/common/Button';
+import { Button, Container } from 'react-bootstrap';
 
 const NotFoundPage = () => {
   const { isAuthenticated } = useAuth();
@@ -16,13 +16,13 @@ const NotFoundPage = () => {
   };
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h2>Stranica ne postoji</h2>
+    <Container className="text-center mt-5">
+      <h2>Page Not Found</h2>
       <p>The page you are looking for does not exist.</p>
       <Button onClick={handleGoBack}>
         {isAuthenticated ? 'Go to Home' : 'Go to Login'}
       </Button>
-    </div>
+    </Container>
   );
 };
 

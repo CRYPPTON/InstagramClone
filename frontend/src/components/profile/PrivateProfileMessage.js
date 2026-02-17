@@ -1,9 +1,9 @@
 import React from 'react';
-import Button from '../common/Button';
+import { Button } from 'react-bootstrap';
 
 const PrivateProfileMessage = ({ onFollow, followStatus }) => {
   return (
-    <div style={{ textAlign: 'center', padding: '50px' }}>
+    <div className="text-center p-5">
       <h3>This Account is Private</h3>
       <p>Follow this account to see their photos and videos.</p>
       {followStatus === 'none' && (

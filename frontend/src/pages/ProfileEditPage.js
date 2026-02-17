@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Input from '../components/common/Input';
-import Button from '../components/common/Button';
+import { Form, Button, Container, Card, Alert, Image } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -85,65 +84,67 @@ const ProfileEditPage = () => {
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '50px auto', padding: '20px', border: '1px solid #dbdbdb' }}>
-      <h2>Edit Profile</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="profile_picture">Profile Picture:</label>
-          {profileData.profile_picture_url && (
-            <img src={api.getMediaUrl(profileData.profile_picture_url)} alt="Current Profile" style={{ width: '100px', height: '100px', borderRadius: '50%', display: 'block', marginBottom: '10px' }} />
-          )}
-          <input type="file" id="profile_picture" name="profile_picture" onChange={handleFileChange} />
-        </div>
-        <Input
-          label="Full Name"
-          type="text"
-          name="full_name"
-          value={profileData.full_name}
-          onChange={handleChange}
-          placeholder="Full Name"
-        />
-        <div style={{ marginBottom: '10px' }}>
-          <label htmlFor="bio">Bio</label>
-          <textarea
-            id="bio"
-            name="bio"
-            value={profileData.bio}
-            onChange={handleChange}
-            placeholder="Bio"
-            rows="3"
-            style={{
-              border: '1px solid #dbdbdb',
-              borderRadius: '3px',
-              padding: '9px',
-              backgroundColor: '#fafafa',
-              width: '100%',
-              marginBottom: '10px'
-            }}
-          ></textarea>
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <input
-            type="checkbox"
-            id="is_private"
-            name="is_private"
-            checked={profileData.is_private}
-            onChange={handleChange}
-          />
-          <label htmlFor="is_private">Private Account</label>
-        </div>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </form>
+    <Container className="mt-5">
+      <Card>
+        <Card.Header as="h2">Edit Profile</Card.Header>
+        <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <Form onSubmit={handleSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label>Profile Picture</Form.Label>
+              {profileData.profile_picture_url && (
+                <Image src={api.getMediaUrl(profileData.profile_picture_url)} alt="Current Profile" roundedCircle width="100" height="100" className="d-block mb-2" />
+              )}
+              <Form.Control type="file" onChange={handleFileChange} />
+            </Form.Group>
 
-      <hr style={{ margin: '30px 0' }} />
+            <Form.Group className="mb-3">
+              <Form.Label>Full Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="full_name"
+                value={profileData.full_name}
+                onChange={handleChange}
+                placeholder="Full Name"
+              />
+            </Form.Group>
 
-      <Button onClick={() => navigate('/follow-requests')}>
-        View Follow Requests
-      </Button>
-    </div>
+            <Form.Group className="mb-3">
+              <Form.Label>Bio</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="bio"
+                value={profileData.bio}
+                onChange={handleChange}
+                placeholder="Bio"
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                id="is_private"
+                name="is_private"
+                label="Private Account"
+                checked={profileData.is_private}
+                onChange={handleChange}
+              />
+            </Form.Group>
+
+            <Button variant="primary" type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </Form>
+
+          <hr className="my-4" />
+
+          <Button variant="secondary" onClick={() => navigate('/follow-requests')}>
+            View Follow Requests
+          </Button>
+        </Card.Body>
+      </Card>
+    </Container>
   );
 };
 

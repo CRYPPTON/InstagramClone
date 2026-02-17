@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Button from '../common/Button';
+import { Button, Image } from 'react-bootstrap';
 import { getImageUrl } from '../../services/api';
 
 const BlockedUsersList = ({ blockedUsers, onUnblock }) => {
@@ -8,10 +8,10 @@ const BlockedUsersList = ({ blockedUsers, onUnblock }) => {
     <div>
       <h2>Blocked Users</h2>
       {blockedUsers.map((user) => (
-        <div key={user.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-          <img src={getImageUrl(user.profile_picture_url) || 'https://via.placeholder.com/50'} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
+        <div key={user.id} className="d-flex align-items-center mb-3">
+          <Image src={getImageUrl(user.profile_picture_url) || 'https://via.placeholder.com/50'} alt="avatar" roundedCircle width="50" height="50" className="me-3" />
           <Link to={`/profile/${user.username}`}>{user.username}</Link>
-          <Button onClick={() => onUnblock(user.id)} style={{ marginLeft: 'auto' }} variant="danger">
+          <Button onClick={() => onUnblock(user.id)} variant="danger" size="sm" className="ms-auto">
             Unblock
           </Button>
         </div>

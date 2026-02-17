@@ -1,11 +1,11 @@
 import React from 'react';
-import Header from './Header';
+import Sidebar from './Sidebar';
 
 const MainLayout = ({ children }) => {
   return (
-    <div>
-      <Header />
-      <main style={{ padding: '20px' }}>
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <main style={{ marginLeft: '250px', padding: '20px', width: '100%' }}>
         {children}
       </main>
     </div>

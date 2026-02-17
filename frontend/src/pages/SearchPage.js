@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Input from '../components/common/Input';
-import api, { getImageUrl } from '../services/api'; // Import getImageUrl
+import { Form, Container, ListGroup, Image } from 'react-bootstrap';
+import api, { getImageUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const SearchPage = () => {
@@ -41,34 +41,36 @@ const SearchPage = () => {
   }, [searchQuery, isAuthenticated]);
 
   return (
-    <div style={{ maxWidth: '600px', margin: '50px auto', padding: '20px', border: '1px solid #dbdbdb' }}>
+    <Container className="mt-5">
       <h2>Search Users</h2>
-      <Input
+      <Form.Control
         type="text"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         placeholder="Search by username or full name..."
+        className="mb-3"
       />
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="text-danger">{error}</p>}
       {loading ? (
         <div>Searching...</div>
       ) : (
-        <div style={{ marginTop: '20px' }}>
+        <ListGroup>
           {searchResults.length === 0 && searchQuery.trim() && !error ? (
             <p>No users found.</p>
           ) : (
             searchResults.map((user) => (
-              <div key={user.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                <img src={getImageUrl(user.profile_picture_url) || process.env.PUBLIC_URL + '/noImage.jpg'} alt="Profile" style={{ width: '50px', height: '50px', borderRadius: '50%', marginRight: '10px' }} />
-                <Link to={`/profile/${user.username}`} style={{ textDecoration: 'none', color: 'black', fontWeight: 'bold' }}>
-                  {user.username} {user.full_name ? `(${user.full_name})` : ''}
-                </Link>
-              </div>
+              <ListGroup.Item key={user.id} as={Link} to={`/profile/${user.username}`} className="d-flex align-items-center">
+                <Image src={getImageUrl(user.profile_picture_url) || '/noImage.jpg'} alt="Profile" roundedCircle width="50" height="50" className="me-3" />
+                <div>
+                  <div className="fw-bold">{user.username}</div>
+                  {user.full_name && <div className="text-muted">{user.full_name}</div>}
+                </div>
+              </ListGroup.Item>
             ))
           )}
-        </div>
+        </ListGroup>
       )}
-    </div>
+    </Container>
   );
 };
 

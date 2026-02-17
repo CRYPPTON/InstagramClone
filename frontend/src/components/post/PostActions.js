@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Button from '../common/Button';
+import { FaHeart, FaRegHeart, FaRegComment, FaRegPaperPlane } from 'react-icons/fa';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext'; // To get authenticated user ID
 
@@ -58,15 +58,17 @@ const PostActions = ({ postId, initialLikeCount, onLikeUpdate }) => {
   };
 
   return (
-    <div style={{ padding: '10px', display: 'flex', alignItems: 'center' }}>
-      <Button onClick={handleLike} style={{ marginRight: '10px' }} disabled={isLiking}>
-        {isLiked ? 'Unlike' : 'Like'}
-      </Button>
-      <strong>{likeCount} likes</strong>
-      {error && <p style={{ color: 'red', marginLeft: '10px' }}>{error}</p>}
-      {/* Comment and Share buttons could go here */}
-      <button style={{ marginLeft: '10px' }}>Comment</button>
-      <button style={{ marginLeft: '10px' }}>Share</button>
+    <div className="d-flex align-items-center p-2">
+      <button onClick={handleLike} className="btn btn-link text-dark" disabled={isLiking}>
+        {isLiked ? <FaHeart color="red" size={24} /> : <FaRegHeart size={24} />}
+      </button>
+      <button className="btn btn-link text-dark">
+        <FaRegComment size={24} />
+      </button>
+      <button className="btn btn-link text-dark">
+        <FaRegPaperPlane size={24} />
+      </button>
+      {error && <p className="text-danger ms-2 mb-0">{error}</p>}
     </div>
   );
 };

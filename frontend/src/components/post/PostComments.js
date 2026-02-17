@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Form, Button, InputGroup } from 'react-bootstrap';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import Input from '../common/Input';
-import Button from '../common/Button';
 
 const COMMENT_LENGTH_LIMIT = 100;
 
@@ -18,34 +17,35 @@ const Comment = ({ comment, authUser, onEdit, onDelete, isEditing, editedContent
 
   if (isEditing) {
     return (
-      <div>
-        <Input
-          type="textarea"
+      <div className="mb-2">
+        <Form.Control
+          as="textarea"
           value={editedContent}
           onChange={onContentChange}
           placeholder="Edit your comment..."
+          rows={2}
         />
-        <Button onClick={() => onSave(comment.id)} style={{ marginRight: '5px' }}>Save</Button>
-        <Button onClick={onCancelEdit}>Cancel</Button>
+        <Button variant="primary" size="sm" className="mt-1" onClick={() => onSave(comment.id)}>Save</Button>
+        <Button variant="secondary" size="sm" className="mt-1 ms-1" onClick={onCancelEdit}>Cancel</Button>
       </div>
     );
   }
   
   return (
-    <div style={{ marginBottom: '5px', wordBreak: 'break-word' }}>
-      <Link to={`/profile/${comment.username}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}>
+    <div className="mb-1">
+      <Link to={`/profile/${comment.username}`} className="fw-bold text-dark text-decoration-none">
         {comment.username}
       </Link>
-      <span> {displayedContent}</span>
+      <span className="ms-1">{displayedContent}</span>
       {isLongComment && !isExpanded && (
-        <button onClick={() => setIsExpanded(true)} style={{ all: 'unset', color: 'grey', cursor: 'pointer', marginLeft: '5px', fontWeight: 'bold' }}>
+        <button onClick={() => setIsExpanded(true)} className="btn btn-link btn-sm p-0 ms-1 text-muted">
           more
         </button>
       )}
       {canManage && (
-        <span style={{ marginLeft: '10px' }}>
-          <Button onClick={() => onEdit(comment)} size="small">Edit</Button>
-          <Button onClick={() => onDelete(comment.id)} size="small" variant="danger" style={{ marginLeft: '5px' }}>Delete</Button>
+        <span className="ms-2">
+          <Button variant="light" size="sm" onClick={() => onEdit(comment)}>Edit</Button>
+          <Button variant="danger" size="sm" className="ms-1" onClick={() => onDelete(comment.id)}>Delete</Button>
         </span>
       )}
     </div>
@@ -131,15 +131,15 @@ const PostComments = ({ postId, ownerId }) => {
   const hasMoreComments = comments.length > visibleCommentsCount;
 
   if (loading) {
-    return <div style={{padding: '10px'}}>Loading comments...</div>;
+    return <div className="p-2">Loading comments...</div>;
   }
 
   return (
-    <div style={{ padding: '10px' }}>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="p-2">
+      {error && <p className="text-danger">{error}</p>}
       
       {comments.length === 0 ? (
-        <p>No comments yet.</p>
+        <p className="text-muted">No comments yet.</p>
       ) : (
         <>
           {visibleComments.map((comment) => (
@@ -157,7 +157,7 @@ const PostComments = ({ postId, ownerId }) => {
             />
           ))}
           {hasMoreComments && (
-            <button onClick={showAllComments} style={{ all: 'unset', color: 'grey', cursor: 'pointer', marginTop: '10px' }}>
+            <button onClick={showAllComments} className="btn btn-link btn-sm p-0 text-muted">
               View all {comments.length} comments
             </button>
           )}
@@ -165,15 +165,18 @@ const PostComments = ({ postId, ownerId }) => {
       )}
 
       {authUser && (
-        <form onSubmit={handleAddComment} style={{ marginTop: '20px', borderTop: '1px solid #efefef', paddingTop: '10px' }}>
-          <Input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
-          />
-          <Button type="submit" style={{ marginTop: '5px' }}>Post Comment</Button>
-        </form>
+        <Form onSubmit={handleAddComment} className="mt-3 border-top pt-2">
+          <InputGroup>
+            <Form.Control
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <Button variant="outline-primary" type="submit">
+              Post
+            </Button>
+          </InputGroup>
+        </Form>
       )}
     </div>
   );
