@@ -74,7 +74,7 @@ router.get('/timeline', auth, async (req, res) => {
 
     // Fetch media for each post
     const postsWithMedia = await Promise.all(timelinePosts.rows.map(async (post) => {
-      const media = await pool.query('SELECT media_url, media_type, order_index FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
+      const media = await pool.query('SELECT id, media_url, media_type, order_index FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
       return { ...post, media: media.rows };
     }));
 
@@ -138,7 +138,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
 
     // Fetch media for the post
-    const media = await pool.query('SELECT media_url, media_type, order_index FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
+    const media = await pool.query('SELECT id, media_url, media_type, order_index FROM media WHERE post_id = $1 ORDER BY order_index ASC', [post.post_id]);
     post.media = media.rows;
 
     res.json(post);

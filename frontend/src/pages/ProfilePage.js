@@ -240,11 +240,7 @@ const ProfilePage = () => {
         onShowBlockedUsers={handleShowBlockedUsers}
         api={api}
       />
-      {isOwner && (
-        <Button onClick={handleShowBlockedUsers} style={{ marginBottom: '20px' }}>
-          Blocked Users
-        </Button>
-      )}
+
       {canViewProfile ? (
         <PostGrid
           posts={profile.posts}
