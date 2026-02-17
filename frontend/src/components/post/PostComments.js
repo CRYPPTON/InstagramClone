@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Form, Button, InputGroup } from 'react-bootstrap';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const COMMENT_LENGTH_LIMIT = 100;
 
@@ -62,6 +63,8 @@ const PostComments = ({ postId, ownerId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [visibleCommentsCount, setVisibleCommentsCount] = useState(2);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -111,16 +114,30 @@ const PostComments = ({ postId, ownerId }) => {
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
-    if (window.confirm('Are you sure you want to delete this comment?')) {
-      setError('');
-      try {
-        await api.deleteComment(postId, commentId);
-        fetchComments(); // Refresh comments
-      } catch (err) {
-        setError(err.message || 'Failed to delete comment.');
-      }
+  const handleDeleteComment = (commentId) => {
+    setConfirmationAction(() => async () => {
+        setError('');
+        try {
+          await api.deleteComment(postId, commentId);
+          fetchComments(); // Refresh comments
+        } catch (err) {
+          setError(err.message || 'Failed to delete comment.');
+        }
+    });
+    setShowConfirmation(true);
+  };
+
+  const confirmAction = () => {
+    if (confirmationAction) {
+      confirmationAction();
     }
+    setShowConfirmation(false);
+    setConfirmationAction(null);
+  };
+
+  const cancelAction = () => {
+    setShowConfirmation(false);
+    setConfirmationAction(null);
   };
 
   const showAllComments = () => {
@@ -177,6 +194,13 @@ const PostComments = ({ postId, ownerId }) => {
             </Button>
           </InputGroup>
         </Form>
+      )}
+      {showConfirmation && (
+        <ConfirmationModal
+          message="Are you sure you want to delete this comment?"
+          onConfirm={confirmAction}
+          onCancel={cancelAction}
+        />
       )}
     </div>
   );

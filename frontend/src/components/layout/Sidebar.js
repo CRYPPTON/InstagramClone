@@ -1,6 +1,6 @@
 import React from 'react';
 import { Nav } from 'react-bootstrap';
-import { FaHome, FaSearch, FaCompass, FaFilm, FaHeart, FaPlusSquare, FaUserCircle } from 'react-icons/fa';
+import { FaHome, FaSearch, FaUserPlus, FaPlusSquare, FaUserCircle } from 'react-icons/fa';
 import { LinkContainer } from 'react-router-bootstrap';
 import { useAuth } from '../../context/AuthContext'; // Import useAuth to get user info
 
@@ -32,22 +32,10 @@ const Sidebar = () => {
             Search
           </Nav.Link>
         </LinkContainer>
-        <LinkContainer to="/explore">
+        <LinkContainer to="/follow-requests">
           <Nav.Link className="d-flex align-items-center mb-3">
-            <FaCompass size={24} className="me-3" />
-            Explore
-          </Nav.Link>
-        </LinkContainer>
-        <LinkContainer to="/reels">
-          <Nav.Link className="d-flex align-items-center mb-3">
-            <FaFilm size={24} className="me-3" />
-            Reels
-          </Nav.Link>
-        </LinkContainer>
-        <LinkContainer to="/notifications">
-          <Nav.Link className="d-flex align-items-center mb-3">
-            <FaHeart size={24} className="me-3" />
-            Notifications
+            <FaUserPlus size={24} className="me-3" />
+            Follow requests
           </Nav.Link>
         </LinkContainer>
         <LinkContainer to="/create-post">

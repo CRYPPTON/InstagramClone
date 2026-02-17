@@ -7,6 +7,7 @@ import PostComments from './PostComments';
 import Carousel from '../common/Carousel'; // Import Carousel
 import { useAuth } from '../../context/AuthContext'; // Import useAuth
 import api from '../../services/api'; // Import api
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const Post = ({ post, onPostDeleted, onPostUpdated }) => {
   const { user: authUser } = useAuth();
@@ -14,18 +15,21 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
   const [editedCaption, setEditedCaption] = useState(post.caption);
   const [currentMedia, setCurrentMedia] = useState(post.media);
   const [error, setError] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
 
   const isOwner = authUser && authUser.id === post.user_id;
 
-  const handleDeletePost = async () => {
-    if (window.confirm('Are you sure you want to delete this post?')) {
-      try {
-        await api.deletePost(post.post_id);
-        if (onPostDeleted) onPostDeleted(post.post_id);
-      } catch (err) {
-        setError(err.message || 'Failed to delete post.');
-      }
-    }
+  const handleDeletePost = () => {
+    setConfirmationAction(() => async () => {
+        try {
+            await api.deletePost(post.post_id);
+            if (onPostDeleted) onPostDeleted(post.post_id);
+          } catch (err) {
+            setError(err.message || 'Failed to delete post.');
+          }
+    });
+    setShowConfirmation(true);
   };
 
   const handleUpdateCaption = async () => {
@@ -44,19 +48,33 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
     }
   };
 
-  const handleDeleteMedia = async (mediaId) => {
-    if (window.confirm('Are you sure you want to delete this media item?')) {
-      try {
-        await api.deleteMedia(post.post_id, mediaId);
-        setCurrentMedia(currentMedia.filter(media => media.id !== mediaId));
-        // Optionally, if no media left, delete the post or show a message
-        if (currentMedia.length === 1) { // If only one item left and it was deleted
-          if (onPostDeleted) onPostDeleted(post.post_id);
-        }
-      } catch (err) {
-        setError(err.message || 'Failed to delete media item.');
-      }
+  const handleDeleteMedia = (mediaId) => {
+    setConfirmationAction(() => async () => {
+        try {
+            await api.deleteMedia(post.post_id, mediaId);
+            setCurrentMedia(currentMedia.filter(media => media.id !== mediaId));
+            // Optionally, if no media left, delete the post or show a message
+            if (currentMedia.length === 1) { // If only one item left and it was deleted
+              if (onPostDeleted) onPostDeleted(post.post_id);
+            }
+          } catch (err) {
+            setError(err.message || 'Failed to delete media item.');
+          }
+    });
+    setShowConfirmation(true);
+  };
+
+  const confirmAction = () => {
+    if (confirmationAction) {
+      confirmationAction();
     }
+    setShowConfirmation(false);
+    setConfirmationAction(null);
+  };
+
+  const cancelAction = () => {
+    setShowConfirmation(false);
+    setConfirmationAction(null);
   };
 
 
@@ -97,6 +115,13 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
       <Card.Footer>
         <PostComments postId={post.post_id} ownerId={post.user_id} />
       </Card.Footer>
+      {showConfirmation && (
+        <ConfirmationModal
+          message="Are you sure you want to proceed?"
+          onConfirm={confirmAction}
+          onCancel={cancelAction}
+        />
+      )}
     </Card>
   );
 };

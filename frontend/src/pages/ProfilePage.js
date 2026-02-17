@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import BlockedUsersList from '../components/profile/BlockedUsersList';
 import PrivateProfileMessage from '../components/profile/PrivateProfileMessage';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -24,6 +25,9 @@ const ProfilePage = () => {
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState(null);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
 
   const fetchProfileAndStatus = useCallback(async () => {
     try {
@@ -183,22 +187,36 @@ const ProfilePage = () => {
     }));
   };
 
-  const handleRemoveFollower = async (profileUserId, followerId, followerUsername) => {
-    if (!authUser || !profile) return;
-    if (window.confirm(`Are you sure you want to remove ${followerUsername} from your followers?`)) {
-      try {
-        await api.removeFollower(profileUserId, followerId);
-        // Refresh the followers list
-        await handleShowFollowers(); // This will re-fetch and update the state
-        setProfile(prevProfile => ({
-          ...prevProfile,
-          followerCount: prevProfile.followerCount - 1
-        }));
-        setError('');
-      } catch (err) {
-        setError(err.message || 'Failed to remove follower.');
-      }
+  const handleRemoveFollower = (profileUserId, followerId, followerUsername) => {
+    setConfirmationMessage(`Are you sure you want to remove ${followerUsername} from your followers?`);
+    setConfirmationAction(() => async () => {
+        try {
+            await api.removeFollower(profileUserId, followerId);
+            // Refresh the followers list
+            await handleShowFollowers(); // This will re-fetch and update the state
+            setProfile(prevProfile => ({
+              ...prevProfile,
+              followerCount: prevProfile.followerCount - 1
+            }));
+            setError('');
+          } catch (err) {
+            setError(err.message || 'Failed to remove follower.');
+          }
+    });
+    setShowConfirmation(true);
+  };
+
+  const confirmAction = () => {
+    if (confirmationAction) {
+      confirmationAction();
     }
+    setShowConfirmation(false);
+    setConfirmationAction(null);
+  };
+
+  const cancelAction = () => {
+    setShowConfirmation(false);
+    setConfirmationAction(null);
   };
 
   if (loading) {
@@ -303,6 +321,13 @@ const ProfilePage = () => {
           <BlockedUsersList blockedUsers={blockedUsers} onUnblock={handleUnblock} />
         </Modal.Body>
       </Modal>
+      {showConfirmation && (
+        <ConfirmationModal
+          message={confirmationMessage}
+          onConfirm={confirmAction}
+          onCancel={cancelAction}
+        />
+      )}
     </Container>
   );
 };

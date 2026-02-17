@@ -65,9 +65,7 @@ const PostActions = ({ postId, initialLikeCount, onLikeUpdate }) => {
       <button className="btn btn-link text-dark">
         <FaRegComment size={24} />
       </button>
-      <button className="btn btn-link text-dark">
-        <FaRegPaperPlane size={24} />
-      </button>
+
       {error && <p className="text-danger ms-2 mb-0">{error}</p>}
     </div>
   );

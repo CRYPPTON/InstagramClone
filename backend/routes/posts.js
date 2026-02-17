@@ -64,6 +64,7 @@ router.get('/timeline', auth, async (req, res) => {
        LEFT JOIN comments c ON p.id = c.post_id
        WHERE
          (u.is_private = FALSE -- Public profiles
+         OR u.id = $1 -- The user's own posts
          OR (u.id IN (SELECT followee_id FROM followers WHERE follower_id = $1 AND status = 'accepted'))) -- Followed private profiles
          AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = u.id) -- Not blocked by user
          AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = u.id AND blocked_id = $1) -- User not blocked by them
