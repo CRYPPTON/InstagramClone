@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgres://enterwait_user:enterwait_dev_2024@localhost:5432/instagram_clone_db',
+  connectionString: process.env.DATABASE_URL || 'postgres://enterwait_user:enterwait_dev_2024@localhost:5433/instagram_clone_db',
 });
 
 // @route   POST /api/auth/register

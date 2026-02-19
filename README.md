@@ -32,7 +32,7 @@ This is a full-stack Instagram clone application with a React frontend and a Nod
     -   **User:** `user`
     -   **Password:** `password`
     -   **Host:** `localhost`
-    -   **Port:** `5432`
+    -   **Port:** `5433`
     -   **Database:** `instagram_clone_db`
     Ensure you have a PostgreSQL user with these credentials or update the connection string in `backend/init-db.js` and `backend/routes/*.js` files.
 4.  **Initialize the database schema:**

@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "5433:5433"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -19,7 +19,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgres://user:password@postgres:5432/instagram_clone_db
+      DATABASE_URL: postgres://user:password@postgres:5433/instagram_clone_db
     depends_on:
       - postgres
 

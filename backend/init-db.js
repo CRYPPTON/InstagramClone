@@ -8,7 +8,7 @@ async function initDb() {
     host: 'localhost',
     database: 'instagram_clone_db',
     password: 'enterwait_dev_2024',
-    port: 5432,
+    port: 5433,
   };
 
   const adminClient = new Client({
