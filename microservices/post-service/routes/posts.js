@@ -213,4 +213,28 @@ router.delete('/:id/media/:mediaId', auth, async (req, res) => {
   }
 });
 
+// NEW: Get basic post info for other services
+router.get('/internal/posts/:id', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, user_id FROM posts WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ msg: 'Post not found' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// NEW: Get basic info for multiple posts
+router.post('/internal/bulk-posts', async (req, res) => {
+    const { postIds } = req.body;
+    try {
+        const result = await pool.query('SELECT id, user_id FROM posts WHERE id = ANY($1::int[])', [postIds]);
+        const postMap = {};
+        result.rows.forEach(p => { postMap[p.id] = p; });
+        res.json(postMap);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;

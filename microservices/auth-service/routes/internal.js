@@ -68,4 +68,36 @@ router.post('/users-info', async (req, res) => {
     }
 });
 
+// NEW: Get IDs of users in a block relationship with a specific user (bidirectional)
+router.get('/blocked-ids/:userId', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT blocked_id as id FROM blocks WHERE blocker_id = $1 UNION SELECT blocker_id as id FROM blocks WHERE blocked_id = $1',
+            [req.params.userId]
+        );
+        res.json(result.rows.map(r => r.id));
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
+// NEW: Get IDs of users in a block relationship with multiple users (Bulk bidirectional)
+router.post('/bulk-blocked-ids', async (req, res) => {
+    const { userIds } = req.body;
+    try {
+        const result = await pool.query(
+            `SELECT blocker_id, blocked_id FROM blocks WHERE blocker_id = ANY($1::int[]) 
+             UNION 
+             SELECT blocked_id as blocker_id, blocker_id as blocked_id FROM blocks WHERE blocked_id = ANY($1::int[])`,
+            [userIds]
+        );
+        const blockMap = {};
+        userIds.forEach(id => { blockMap[id] = []; });
+        result.rows.forEach(r => { blockMap[r.blocker_id].push(r.blocked_id); });
+        res.json(blockMap);
+    } catch (err) {
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;

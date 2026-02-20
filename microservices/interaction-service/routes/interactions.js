@@ -6,11 +6,23 @@ const axios = require('axios');
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// Internal: Get counts for a post
+// Internal: Get counts for a post (excluding blocked users)
 router.get('/counts/:postId', async (req, res) => {
   try {
-    const likeCount = await pool.query('SELECT COUNT(*) FROM likes WHERE post_id = $1', [req.params.postId]);
-    const commentCount = await pool.query('SELECT COUNT(*) FROM comments WHERE post_id = $1', [req.params.postId]);
+    const postRes = await axios.get(`${process.env.POST_SERVICE_URL}/internal/posts/${req.params.postId}`);
+    const ownerId = postRes.data.user_id;
+
+    const blockedRes = await axios.get(`${process.env.AUTH_SERVICE_URL}/internal/blocked-ids/${ownerId}`);
+    const blockedIds = blockedRes.data || [];
+
+    const likeCount = await pool.query(
+      'SELECT COUNT(*) FROM likes WHERE post_id = $1 AND NOT (user_id = ANY($2::int[]))',
+      [req.params.postId, blockedIds]
+    );
+    const commentCount = await pool.query(
+      'SELECT COUNT(*) FROM comments WHERE post_id = $1 AND NOT (user_id = ANY($2::int[]))',
+      [req.params.postId, blockedIds]
+    );
     res.json({
       likeCount: parseInt(likeCount.rows[0].count),
       commentCount: parseInt(commentCount.rows[0].count)
@@ -20,26 +32,52 @@ router.get('/counts/:postId', async (req, res) => {
   }
 });
 
-// NEW: Bulk counts for timeline optimization
+// NEW: Bulk counts for timeline optimization (excluding blocked users)
 router.post('/bulk-counts', async (req, res) => {
     const { postIds } = req.body;
     try {
-        const likes = await pool.query(
-            'SELECT post_id, COUNT(*) as count FROM likes WHERE post_id = ANY($1::int[]) GROUP BY post_id',
+        // 1. Get owners for these posts
+        const postRes = await axios.post(`${process.env.POST_SERVICE_URL}/internal/bulk-posts`, { postIds });
+        const postOwners = postRes.data; // { postId: { id, user_id } }
+        const ownerIds = [...new Set(Object.values(postOwners).map(p => p.user_id))];
+
+        // 2. Get blocked users for these owners
+        const blockRes = await axios.post(`${process.env.AUTH_SERVICE_URL}/internal/bulk-blocked-ids`, { userIds: ownerIds });
+        const blockMap = blockRes.data; // { ownerId: [blockedIds] }
+
+        // 3. Get all likes and comments for these posts
+        const likesRes = await pool.query(
+            'SELECT post_id, user_id FROM likes WHERE post_id = ANY($1::int[])',
             [postIds]
         );
-        const comments = await pool.query(
-            'SELECT post_id, COUNT(*) as count FROM comments WHERE post_id = ANY($1::int[]) GROUP BY post_id',
+        const commentsRes = await pool.query(
+            'SELECT post_id, user_id FROM comments WHERE post_id = ANY($1::int[])',
             [postIds]
         );
-        
+
         const counts = {};
         postIds.forEach(id => { counts[id] = { likeCount: 0, commentCount: 0 }; });
-        likes.rows.forEach(r => { counts[r.post_id].likeCount = parseInt(r.count); });
-        comments.rows.forEach(r => { counts[r.post_id].commentCount = parseInt(r.count); });
-        
+
+        // Filter and count
+        likesRes.rows.forEach(r => {
+            const ownerId = postOwners[r.post_id]?.user_id;
+            const blockedIds = blockMap[ownerId] || [];
+            if (!blockedIds.includes(r.user_id)) {
+                counts[r.post_id].likeCount++;
+            }
+        });
+
+        commentsRes.rows.forEach(r => {
+            const ownerId = postOwners[r.post_id]?.user_id;
+            const blockedIds = blockMap[ownerId] || [];
+            if (!blockedIds.includes(r.user_id)) {
+                counts[r.post_id].commentCount++;
+            }
+        });
+
         res.json(counts);
     } catch (err) {
+        console.error('Bulk counts error:', err.message);
         res.status(500).send('Error');
     }
 });
@@ -102,13 +140,23 @@ router.get('/posts/:id/like', auth, async (req, res) => {
     }
 });
 
-// Get Comments
+// Get Comments (excluding blocked users)
 router.get('/posts/:id/comments', async (req, res) => {
     try {
+        const postId = req.params.id;
+
+        // Get post owner and their blocked users
+        const postRes = await axios.get(`${process.env.POST_SERVICE_URL}/internal/posts/${postId}`);
+        const ownerId = postRes.data.user_id;
+
+        const blockedRes = await axios.get(`${process.env.AUTH_SERVICE_URL}/internal/blocked-ids/${ownerId}`);
+        const blockedIds = blockedRes.data || [];
+
         const comments = await pool.query(
             `SELECT id, user_id, content, created_at FROM comments 
-             WHERE post_id = $1 ORDER BY created_at DESC`, 
-            [req.params.id]
+             WHERE post_id = $1 AND NOT (user_id = ANY($2::int[]))
+             ORDER BY created_at DESC`, 
+            [postId, blockedIds]
         );
         const enriched = await Promise.all(comments.rows.map(async (c) => {
             const userRes = await axios.get(`${process.env.AUTH_SERVICE_URL}/internal/user-info/${c.user_id}`);
@@ -116,6 +164,7 @@ router.get('/posts/:id/comments', async (req, res) => {
         }));
         res.json(enriched);
     } catch (err) {
+        console.error('Comments error:', err.message);
         res.status(500).send('Server error');
     }
 });
