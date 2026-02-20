@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button } from 'react-bootstrap';
 import PostHeader from './PostHeader';
@@ -14,9 +14,15 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCaption, setEditedCaption] = useState(post.caption);
   const [currentMedia, setCurrentMedia] = useState(post.media);
+  const [currentLikeCount, setCurrentLikeCount] = useState(post.like_count);
   const [error, setError] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState(null);
+
+  // Sync like count if post prop changes
+  useEffect(() => {
+    setCurrentLikeCount(post.like_count);
+  }, [post.like_count]);
 
   const isOwner = authUser && authUser.id === post.user_id;
 
@@ -36,13 +42,14 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
     try {
       await api.updatePost(post.post_id, editedCaption);
       setIsEditing(false);
-      if (onPostUpdated) onPostUpdated(post.post_id, editedCaption, post.like_count);
+      if (onPostUpdated) onPostUpdated(post.post_id, editedCaption, currentLikeCount);
     } catch (err) {
       setError(err.message || 'Failed to update caption.');
     }
   };
 
   const handleLikeUpdate = (newLikeCount) => {
+    setCurrentLikeCount(newLikeCount);
     if (onPostUpdated) {
       onPostUpdated(post.post_id, post.caption, newLikeCount);
     }
@@ -95,7 +102,7 @@ const Post = ({ post, onPostDeleted, onPostUpdated }) => {
       <Card.Body>
         <PostActions postId={post.post_id} initialLikeCount={post.like_count} onLikeUpdate={handleLikeUpdate} />
         <Card.Text>
-          <strong>{post.like_count} likes</strong>
+          <strong>{currentLikeCount} likes</strong>
         </Card.Text>
         {isEditing ? (
           <div>

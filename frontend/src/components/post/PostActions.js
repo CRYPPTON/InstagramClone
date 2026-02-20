@@ -10,6 +10,11 @@ const PostActions = ({ postId, initialLikeCount, onLikeUpdate }) => {
   const [isLiking, setIsLiking] = useState(false);
   const [error, setError] = useState('');
 
+  // Sync state with props when they change
+  useEffect(() => {
+    setLikeCount(initialLikeCount);
+  }, [initialLikeCount]);
+
   const checkLike = useCallback(async () => {
     if (!authUser) return;
     try {

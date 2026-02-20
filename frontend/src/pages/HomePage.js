@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from 'react-bootstrap';
 import Post from '../components/post/Post';
 import api from '../services/api';
 import PullToRefresh from 'react-simple-pull-to-refresh';
@@ -44,15 +46,27 @@ const HomePage = () => {
 
   return (
     <PullToRefresh onRefresh={fetchPosts}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        {posts.map(post => (
-          <Post
-            key={post.post_id}
-            post={post}
-            onPostDeleted={handlePostDeleted}
-            onPostUpdated={handlePostUpdated}
-          />
-        ))}
+      <div style={{ maxWidth: '600px', margin: '0 auto', minHeight: '50vh' }}>
+        {posts.length > 0 ? (
+          posts.map(post => (
+            <Post
+              key={post.post_id}
+              post={post}
+              onPostDeleted={handlePostDeleted}
+              onPostUpdated={handlePostUpdated}
+            />
+          ))
+        ) : (
+          <div className="text-center mt-5 p-5 border rounded bg-light">
+            <h3>Your timeline is empty</h3>
+            <p className="text-muted mb-4">Start by following some users to see their posts here!</p>
+            <Link to="/search">
+              <Button variant="primary" size="lg">
+                Search Users
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </PullToRefresh>
   );

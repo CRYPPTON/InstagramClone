@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001/api';
-const BASE_URL = 'http://localhost:3001'; // Base URL for static assets
+const API_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://localhost:3000'; // Base URL for static assets (proxied through gateway)
 
 // Helper function to get full image URL
 const getImageUrl = (relativePath) => {
