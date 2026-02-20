@@ -4,6 +4,7 @@
   "description": "Root management for Instagram Clone Microservices",
   "scripts": {
     "install-all": "npm install --prefix microservices/api-gateway && npm install --prefix microservices/auth-service && npm install --prefix microservices/post-service && npm install --prefix microservices/interaction-service",
+    "test-all": "bash test-all.sh",
     "start": "npx concurrently \"npm start --prefix microservices/auth-service\" \"npm start --prefix microservices/post-service\" \"npm start --prefix microservices/interaction-service\" \"npm start --prefix microservices/api-gateway\"",
     "dev": "npx concurrently \"npm run dev --prefix microservices/auth-service\" \"npm run dev --prefix microservices/post-service\" \"npm run dev --prefix microservices/interaction-service\" \"npm run dev --prefix microservices/api-gateway\""
   },
