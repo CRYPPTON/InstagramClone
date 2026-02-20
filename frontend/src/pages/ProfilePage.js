@@ -174,7 +174,6 @@ const ProfilePage = () => {
     setProfile((prevProfile) => ({
       ...prevProfile,
       posts: prevProfile.posts.filter((post) => post.post_id !== deletedPostId),
-      postCount: prevProfile.postCount - 1,
     }));
   };
 

@@ -64,7 +64,7 @@ router.get('/:username', optionalAuth, async (req, res) => {
     let posts = [];
     if (canViewPosts) {
         try {
-            const postsRes = await axios.get(`${process.env.POST_SERVICE_URL}/posts/internal/user/${targetUser.id}`);
+            const postsRes = await axios.get(`${process.env.POST_SERVICE_URL}/internal/user/${targetUser.id}`);
             posts = postsRes.data;
         } catch (e) {
             console.error("Error fetching posts from Post Service:", e.message);
