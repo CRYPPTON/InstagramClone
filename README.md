@@ -1,126 +1,120 @@
-# Instagram Clone
+# Instagram Clone - Microservices Architecture
 
-This is a full-stack Instagram clone application with a React frontend and a Node.js (Express) backend, utilizing PostgreSQL as its database.
+Ovo je moderna, skalabilna replika Instagrama izgrađena pomoću mikroservisne arhitekture. Projekat je podeljen na nezavisne servise koji komuniciraju preko API Gateway-a.
 
-## Table of Contents
-- [Project Setup](#project-setup)
-  - [Prerequisites](#prerequisites)
-  - [Database Setup](#database-setup)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
-- [Architecture](#architecture)
-- [Functional Flow](#functional-flow)
-- [How to Use](#how-to-use)
-  - [Register and Login](#register-and-login)
-  - [Key Features](#key-features)
-- [Improvements](#improvements)
-- [Team Members](#team-members)
+## 🏗️ Arhitektura sistema
 
-## Project Setup
+Sistem se sastoji od sledećih komponenti:
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v20.18.1 or later)
-- [PostgreSQL](https://www.postgresql.org/)
+| Servis | Port | Opis |
+| :--- | :--- | :--- |
+| **API Gateway** | `3000` | Ulazna tačka za sve klijentske zahteve. Vrši proxy-ovanje ka mikroservisima. |
+| **Auth Service** | `3001` | Upravljanje korisnicima, registracija, login (JWT) i profili. |
+| **Post Service** | `3002` | Kreiranje objava, upload medija i upravljanje sadržajem. |
+| **Interaction Service** | `3003` | Lajkovi, komentari i brojači interakcija. |
+| **React Frontend** | `3004` | Korisnički interfejs (podešen na port 3004). |
 
-### Database Setup
-1.  **Start your PostgreSQL server.**
-2.  **Create a new database:**
-    ```sql
-    CREATE DATABASE instagram_clone_db;
-    ```
-3.  **Configure connection:** The backend connects to the database using the following credentials (from `backend/init-db.js`):
-    -   **User:** `user`
-    -   **Password:** `password`
-    -   **Host:** `localhost`
-    -   **Port:** `5433`
-    -   **Database:** `instagram_clone_db`
-    Ensure you have a PostgreSQL user with these credentials or update the connection string in `backend/init-db.js` and `backend/routes/*.js` files.
-4.  **Initialize the database schema:**
-    Navigate to the `backend` directory and run:
-    ```bash
-    node init-db.js
-    ```
-    This will create all the necessary tables.
+## 🚀 Tehnologije
 
-### Backend Setup
-1.  **Navigate to the `backend` directory:**
-    ```bash
-    cd backend
-    ```
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-3.  **Start the backend server:**
-    ```bash
-    node index.js
-    ```
-    The server will run on `http://localhost:3001`.
+- **Backend:** Node.js, Express.js
+- **Frontend:** React, React Bootstrap, React Router
+- **Baza podataka:** PostgreSQL
+- **Testiranje:** Jest, Supertest (Unit/Integration), Cypress (E2E)
+- **Komunikacija:** REST API, HTTP Proxy
 
-### Frontend Setup
-1.  **Open a new terminal.**
-2.  **Navigate to the `frontend` directory:**
-    ```bash
-    cd frontend
-    ```
-3.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-4.  **Start the frontend development server:**
-    ```bash
-    npm start
-    ```
-    The application will be accessible at `http://localhost:3000`.
+## 🛠️ Instalacija i Podešavanje
 
-## Architecture
+### 1. Preduslovi
+- Instaliran [Node.js](https://nodejs.org/) (20.18.1)
+- Instaliran [PostgreSQL](https://www.postgresql.org/) (lokalno ili preko Dockera)
 
-The application follows a client-server architecture:
+### 2. Kloniranje i instalacija zavisnosti
+Iz korena projekta pokrenite komandu koja će instalirati zavisnosti za sve servise i frontend:
+```bash
+npm run install-all
+```
 
--   **Frontend (Client):** Developed with React, it provides the user interface and interacts with the backend API to fetch and send data.
--   **Backend (Server):** Built with Node.js and Express.js, it handles API requests, user authentication, data management, and serves static files (e.g., uploaded media).
--   **Database:** PostgreSQL is used as the relational database to store user information, posts, comments, likes, and follow relationships.
+### 3. Detaljna konfiguracija baze podataka
 
-Communication between the frontend and backend occurs via RESTful API calls.
+Svaki mikroservis je nezavisan i poseduje sopstvenu konfiguraciju za povezivanje sa PostgreSQL bazom preko varijable `DATABASE_URL` u `.env` fajlu.
 
-## Functional Flow
+#### Format konekcionog stringa:
+```text
+postgres://<USER>:<PASSWORD>@<HOST>:<PORT>/<DATABASE_NAME>
+```
+*Primer:* `postgres://nikola:lozinka123@localhost:5432/instagram_auth`
 
-### Authentication
--   Users register with a unique username/email and password.
--   Upon successful login, a JSON Web Token (JWT) is issued and stored on the client-side.
--   This JWT is sent with subsequent requests to authenticate the user and authorize access to protected routes.
+#### Gde se nalaze .env fajlovi?
+Morate kreirati ili urediti `.env` fajl u svakom od sledećih direktorijuma:
+- `microservices/auth-service/.env`
+- `microservices/post-service/.env`
+- `microservices/interaction-service/.env`
 
-### Posting Content
--   Authenticated users can create new posts, including multiple images/videos and a caption.
--   Media files are uploaded to the server and stored on the filesystem, with their paths saved in the database.
--   Posts from users the current user follows (and the user's own posts) appear on their timeline.
+#### Primer sadržaja .env fajla (Auth Service):
+```env
+PORT=3001
+DATABASE_URL=postgres://user:pass@localhost:5432/instagram_auth
+JWT_SECRET=vasa_tajna_rec
+INTERACTION_SERVICE_URL=http://localhost:3003
+POST_SERVICE_URL=http://localhost:3002
+```
 
-### Following Users
--   **Public Profiles:** Following a public profile automatically establishes a "followed" relationship.
--   **Private Profiles:** Following a private profile sends a follow request. The owner of the private profile must explicitly accept the request for the follow relationship to be established. Users can manage their follow requests from a dedicated page.
+#### Automatska inicijalizacija:
+Možete koristiti skriptu `setup-dbs.sh` za automatsko kreiranje baza. Ona će pročitati šeme iz `microservices/*/schema.sql` i primeniti ih.
+```bash
+chmod +x setup-dbs.sh
+./setup-dbs.sh
+```
 
-### Interactions (Likes & Comments)
--   Users can like posts and add comments.
--   These actions are recorded in the database.
--   Users can edit or delete their own comments.
+## 🏁 Pokretanje aplikacije
 
-### Profile Management
--   Users can view their own profile and edit details like name, bio, and profile picture.
--   They can also view other users' profiles, with visibility of posts and follower/following lists depending on the profile's privacy setting and their follow status.
+Aplikaciju možete pokrenuti jednom komandom iz korenskog direktorijuma:
 
-## How to Use
+```bash
+npm start
+```
+Ova komanda koristi `concurrently` da istovremeno podigne:
+1. API Gateway (Port 3000)
+2. Auth Service (Port 3001)
+3. Post Service (Port 3002)
+4. Interaction Service (Port 3003)
+5. Frontend (Port 3004)
 
-### Register and Login
-1.  **Register:** Navigate to `http://localhost:3000/register` and create a new account by providing a username, email, password, and full name.
-2.  **Login:** Navigate to `http://localhost:3000/login` and use your registered credentials (username/email and password).
+## 🧪 Testiranje
 
-### Key Features
-Once logged in, you can:
--   **Timeline View:** See a chronological feed of posts from users you follow, including your own posts.
--   **Create Posts:** Upload up to 20 images/videos per post with a caption.
--   **Edit/Delete Posts & Comments:** Manage your own content, including updating post captions, removing media from posts, deleting entire posts, and editing/deleting your comments.
--   **Follow/Unfollow:** Connect with other users. For private profiles, follow requests must be accepted.
--   **Search Users:** Find other users by their name or username.
--   **Block/Unblock:** Control who can interact with your profile and content.
--   **Profile Management:** View and edit your profile details, including your profile picture.
--   **Follow Request Management:** Accept or reject follow requests if you have a private profile.
+### Mikroservisi (Unit & Integration)
+Svaki servis ima svoje testove napisane u Jest-u. Da pokrenete sve backend testove odjednom:
+```bash
+npm run test-all
+```
+
+### Frontend E2E (Cypress)
+Cypress testovi pokrivaju UI i API integraciju. Za pokretanje E2E testova, aplikacija mora biti pokrenuta (`npm start`).
+
+U novom terminalu (u `frontend` folderu):
+```bash
+cd frontend
+npm run test:e2e
+```
+Ova komanda će automatski sačekati da se frontend podigne na portu 3004 pre nego što pusti testove.
+
+## 📁 Struktura direktorijuma
+```text
+.
+├── microservices/
+│   ├── api-gateway/          # Express Gateway & Proxy
+│   ├── auth-service/         # User & Profile Management
+│   ├── post-service/         # Posts & Media Upload
+│   └── interaction-service/  # Likes & Comments
+├── frontend/                 # React Application
+├── database/                 # SQL Sheme i migracije
+├── start-all.sh              # Bash skripta za pokretanje
+└── test-all.sh               # Bash skripta za testove
+```
+
+## ⚠️ Rešavanje problema
+Ako dobijete grešku `EADDRINUSE`, verovatno je port 3000 ili 3004 zauzet. Možete osloboditi port komandom:
+```bash
+fuser -k 3000/tcp
+fuser -k 3004/tcp
+```
