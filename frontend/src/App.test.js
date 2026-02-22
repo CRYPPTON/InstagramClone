@@ -8,7 +8,7 @@ test('renders login page by default', async () => {
       <App />
     </AuthProvider>
   );
-  // The login page contains "Instagram" as an h1
-  const loginHeader = await screen.findByText(/Instagram/i);
-  expect(loginHeader).toBeInTheDocument();
+  // Search for the "Log In" button which is unique to the login page
+  const loginButton = await screen.findByRole('button', { name: /Log In/i });
+  expect(loginButton).toBeInTheDocument();
 });
