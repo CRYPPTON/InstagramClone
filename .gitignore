@@ -1,8 +1,32 @@
-# Node.js
+# Dependency directories
 node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+
+# Uploads and User Media (important: user images/videos should not be in the repo)
+uploads/
+**/uploads/
+
+# Build artifacts
 dist/
 build/
-.env
+**/dist/
+**/build/
+.next/
+out/
+.vercel
+
+# Testing
+coverage/
+**/coverage/
 
 # Logs
 *.log
@@ -11,54 +35,40 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# OS
+# OS-specific files
 .DS_Store
-.vscode/
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Editor directories and files
-.idea
-.vs
+# IDE-specific directories and files
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.sublime-project
+*.sublime-workspace
 
-# misc
-.web.js
+# Misc
 *.css.map
-
-# Next.js
-.next/
-out/
-
-# Create React App
-# production build
-/build
-
-# dependencies
-/node_modules
-
-# testing
-/coverage
-
-# local env files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# vercel
-.vercel
-
-# typescript
+.web.js
 *.tsbuildinfo
 
-# Docker
-.dockerignore
-Dockerfile
+# Project specific
+backend_OLD/
+currentLook/
+Projektni_zadatak_PISIBP_2025 (1).pdf
+database/
 
-# Database
-*.sql
+# Docker related
 *.sqlite
 /data
+# Keep .sql if they are part of migrations/init, ignore if they are local dumps
+# *.sql

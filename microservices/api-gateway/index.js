@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
+// Increase limits for JSON and URL-encoded bodies if needed by gateway itself
+app.use(express.json({ limit: '1000mb' }));
+app.use(express.urlencoded({ limit: '1000mb', extended: true }));
 
 // --- PROXY RULES ---
 
@@ -14,27 +17,31 @@ app.use(cors());
 app.use('/api/auth', createProxyMiddleware({
   target: process.env.AUTH_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: { '^/api/auth': '/auth' }
+  pathRewrite: { '^/api/auth': '/auth' },
+  onProxyReq: fixRequestBody
 }));
 
 app.use('/api/users', createProxyMiddleware({
   target: process.env.AUTH_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: { '^/api/users': '/users' }
+  pathRewrite: { '^/api/users': '/users' },
+  onProxyReq: fixRequestBody
 }));
 
 // Interactions
 app.use(['/api/posts/*/like', '/api/posts/*/comment', '/api/posts/*/comments'], createProxyMiddleware({
   target: process.env.INTERACTION_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: { '^/api': '/interactions' }
+  pathRewrite: { '^/api': '/interactions' },
+  onProxyReq: fixRequestBody
 }));
 
 // Posts
 app.use('/api/posts', createProxyMiddleware({
   target: process.env.POST_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: { '^/api/posts': '/posts' }
+  pathRewrite: { '^/api/posts': '/posts' },
+  onProxyReq: fixRequestBody
 }));
 
 // --- STATIC FILES PROXY ---

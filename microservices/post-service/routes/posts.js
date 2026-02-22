@@ -109,7 +109,15 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 router.post('/', auth, (req, res) => {
   upload(req, res, async (err) => {
-    if (err) return res.status(400).json({ msg: err });
+    if (err) {
+      let errorMessage = err.message || err;
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        errorMessage = 'Maximum 20 files allowed per post.';
+      } else if (err.code === 'LIMIT_FILE_SIZE') {
+        errorMessage = 'One or more files exceed the 50MB size limit.';
+      }
+      return res.status(400).json({ msg: errorMessage });
+    }
     const { caption } = req.body;
     const userId = req.user.id;
     try {
