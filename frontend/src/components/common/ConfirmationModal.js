@@ -1,6 +1,7 @@
 import React from 'react';
 import './ConfirmationModal.css';
 
+// Test actions
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
   return (
     <div className="confirmation-modal-backdrop">
