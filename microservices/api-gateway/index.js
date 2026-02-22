@@ -59,6 +59,10 @@ app.use(createProxyMiddleware('/uploads', {
   changeOrigin: true,
 }));
 
+app.get('/', (req, res) => {
+  res.json({ msg: 'API Gateway is running' });
+});
+
 app.listen(port, () => {
   console.log(`API Gateway running on port ${port}`);
 });

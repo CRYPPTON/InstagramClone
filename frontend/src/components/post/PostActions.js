@@ -63,7 +63,7 @@ const PostActions = ({ postId, initialLikeCount, onLikeUpdate }) => {
   };
 
   return (
-    <div className="d-flex align-items-center p-2">
+    <div className="post-actions d-flex align-items-center p-2">
       <button onClick={handleLike} className="btn btn-link text-dark" disabled={isLiking}>
         {isLiked ? <FaHeart color="red" size={24} /> : <FaRegHeart size={24} />}
       </button>
