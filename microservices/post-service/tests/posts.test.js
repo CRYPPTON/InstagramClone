@@ -114,22 +114,22 @@ describe('Post Service - Posts Routes', () => {
     });
   });
 
-  describe('GET /posts/internal/user/:userId', () => {
+  describe('GET /internal/user/:userId', () => {
     it('should return posts for a user', async () => {
         pool.query.mockResolvedValueOnce({ rows: [{ id: 10, user_id: 2, caption: 'test' }] });
         pool.query.mockResolvedValueOnce({ rows: [] }); // media
         axios.get.mockResolvedValueOnce({ data: { likeCount: 5 } }); // interaction
 
-        const res = await request(app).get('/posts/internal/user/2');
+        const res = await request(app).get('/internal/user/2');
         expect(res.statusCode).toEqual(200);
         expect(res.body[0].like_count).toBe(5);
     });
   });
 
-  describe('POST /posts/internal/bulk-posts', () => {
+  describe('POST /internal/bulk-posts', () => {
     it('should return bulk post info', async () => {
         pool.query.mockResolvedValueOnce({ rows: [{ id: 10, user_id: 2 }] });
-        const res = await request(app).post('/posts/internal/bulk-posts').send({ postIds: [10] });
+        const res = await request(app).post('/internal/bulk-posts').send({ postIds: [10] });
         expect(res.statusCode).toEqual(200);
         expect(res.body['10'].user_id).toBe(2);
     });
