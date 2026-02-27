@@ -96,7 +96,7 @@ Cypress testovi pokrivaju UI i API integraciju. Za pokretanje E2E testova, aplik
 U novom terminalu (u `frontend` folderu):
 ```bash
 cd frontend
-npm run test:e2e
+npm run cypress:open
 ```
 Ova komanda će automatski sačekati da se frontend podigne na portu 3004 pre nego što pusti testove.
 
