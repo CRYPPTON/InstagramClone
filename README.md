@@ -68,6 +68,8 @@ chmod +x setup-dbs.sh
 
 ## 🏁 Pokretanje aplikacije
 
+## repo link: https://github.com/CRYPPTON/InstagramClone
+
 Aplikaciju možete pokrenuti jednom komandom iz korenskog direktorijuma:
 
 ```bash
